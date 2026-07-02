@@ -16,6 +16,7 @@ const IconZoomOut = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentCo
 const IconFull    = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" width={15} height={15}><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>;
 const IconExit    = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" width={15} height={15}><polyline points="8 3 3 3 3 8"/><polyline points="21 8 21 3 16 3"/><polyline points="3 16 3 21 8 21"/><polyline points="16 21 21 21 21 16"/></svg>;
 const IconDown    = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" width={15} height={15}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+const IconFloat   = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" width={15} height={15}><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>;
 
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
@@ -43,9 +44,9 @@ BookPage.displayName = 'BookPage';
 
 // ── Toolbar button component ───────────────────────────────────────────────────
 function TBtn({
-  onClick, disabled = false, title, children,
+  onClick, disabled = false, title, children, active = false,
 }: {
-  onClick: () => void; disabled?: boolean; title?: string; children: React.ReactNode;
+  onClick: () => void; disabled?: boolean; title?: string; children: React.ReactNode; active?: boolean;
 }) {
   const [hover, setHover] = useState(false);
   return (
@@ -59,7 +60,7 @@ function TBtn({
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         width: 32, height: 32, borderRadius: 6,
         border: 'none',
-        background: hover && !disabled ? 'rgba(255,255,255,0.12)' : 'transparent',
+        background: active ? 'rgba(255,255,255,0.2)' : (hover && !disabled ? 'rgba(255,255,255,0.12)' : 'transparent'),
         color: disabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.85)',
         cursor: disabled ? 'default' : 'pointer',
         transition: 'background 0.15s, color 0.15s',
@@ -79,10 +80,12 @@ export default function EbookViewer({
   pdfUrl,
   bgType = 'gradient',
   bgValue = 'auto',
+  isFloating: initialIsFloating = false,
 }: {
   pdfUrl: string;
   bgType?: string;
   bgValue?: string;
+  isFloating?: boolean;
 }) {
   const [numPages, setNumPages]         = useState(0);
   const [currentPage, setCurrentPage]   = useState(0);
@@ -91,8 +94,13 @@ export default function EbookViewer({
   const [isMobile, setIsMobile]         = useState(false);
   const [zoom, setZoom]                 = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFloating, setIsFloating]     = useState(initialIsFloating);
   const pageRatioRef                    = useRef<number | null>(null); // เก็บ ratio ไว้ recalc
   const [customBgStyle, setCustomBgStyle] = useState<any>(null);
+
+  useEffect(() => {
+    setIsFloating(initialIsFloating);
+  }, [initialIsFloating]);
   
   const onCoverRenderSuccess = useCallback(() => {
     if (bgType !== 'gradient' || bgValue !== 'auto') return;
@@ -370,7 +378,26 @@ export default function EbookViewer({
       }}
     >
       {/* ── TOP TOOLBAR ──────────────────────────────────────────────────────── */}
-      <div style={{
+      <div style={isFloating ? {
+        position: 'fixed',
+        bottom: isMobile ? 16 : 28,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 10000,
+        height: 48,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
+        background: 'rgba(20, 20, 20, 0.55)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: 24,
+        padding: '0 14px',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+      } : {
         width: '100%',
         height: 48,
         flexShrink: 0,
@@ -383,6 +410,7 @@ export default function EbookViewer({
         borderBottom: '1px solid rgba(255,255,255,0.07)',
         padding: '0 12px',
         boxSizing: 'border-box',
+        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
         {/* First */}
         <TBtn onClick={goFirst} disabled={atFirst} title="หน้าแรก">
@@ -452,6 +480,11 @@ export default function EbookViewer({
           {isFullscreen ? <IconExit /> : <IconFull />}
         </TBtn>
 
+        {/* Float Toggle */}
+        <TBtn onClick={() => setIsFloating(!isFloating)} active={isFloating} title={isFloating ? 'ปิดสมุดลอย' : 'เปิดสมุดลอย'}>
+          <IconFloat />
+        </TBtn>
+
         {/* Download */}
         <TBtn onClick={handleDownload} title="ดาวน์โหลด PDF">
           <IconDown />
@@ -490,6 +523,21 @@ export default function EbookViewer({
               transformOrigin: 'center center',
               transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
             }}>
+              <style dangerouslySetInnerHTML={{
+                __html: `
+                  @keyframes pedebook-soft-float-viewer {
+                    0%, 100% {
+                      transform: translateY(0px);
+                    }
+                    50% {
+                      transform: translateY(-10px);
+                    }
+                  }
+                  .pedebook-floating-viewer-book {
+                    animation: pedebook-soft-float-viewer 4s ease-in-out infinite;
+                  }
+                `
+              }} />
 
               {/* ‹ nav button — อยู่ใน outer (ไม่ถูก clip) */}
               <button
@@ -498,14 +546,33 @@ export default function EbookViewer({
                 style={navBtnStyle('left', atFirst, isMobile)}
               >‹</button>
 
-              {/* ── Clip box: กัน flip-animation overflow ออกนอก book ── */}
-              <div style={{
-                overflow: 'hidden',
-                width:  isMobile ? pageSize.width : pageSize.width * 2,
-                height: pageSize.height,
-                position: 'relative',
-                boxShadow: '0 30px 80px rgba(0,0,0,0.65)',
-              }}>
+              {/* ── Floating Wrapper Div ── */}
+              <div className={isFloating ? "pedebook-floating-viewer-book" : ""} style={{ transition: 'transform 0.5s ease-in-out', position: 'relative' }}>
+                {/* Dynamic ambient backdrop glow */}
+                {isFloating && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '-10%',
+                    left: '-10%',
+                    right: '-10%',
+                    bottom: '-10%',
+                    background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 70%)',
+                    filter: 'blur(50px)',
+                    zIndex: -1,
+                    pointerEvents: 'none',
+                  }} />
+                )}
+                {/* ── Clip box: กัน flip-animation overflow ออกนอก book ── */}
+                <div style={{
+                  overflow: 'hidden',
+                  width:  isMobile ? pageSize.width : pageSize.width * 2,
+                  height: pageSize.height,
+                  position: 'relative',
+                  boxShadow: isFloating 
+                    ? '0 45px 100px rgba(0,0,0,0.7), 0 15px 35px rgba(0,0,0,0.3)' 
+                    : '0 30px 80px rgba(0,0,0,0.65)',
+                  transition: 'box-shadow 0.5s ease-in-out',
+                }}>
                 {/* @ts-ignore */}
                 <HTMLFlipBook
                   key={`${isMobile ? 'm' : 'd'}-${pageSize.width}-${pageSize.height}`}
@@ -540,8 +607,9 @@ export default function EbookViewer({
                   ))}
                 </HTMLFlipBook>
               </div>
+            </div>
 
-              {/* › nav button — อยู่ใน outer (ไม่ถูก clip) */}
+            {/* › nav button — อยู่ใน outer (ไม่ถูก clip) */}
               <button
                 onClick={goNext}
                 disabled={atLast}

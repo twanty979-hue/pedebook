@@ -37,6 +37,7 @@ interface CatalogItem {
   lastModified: string;
   bgType?: string;
   bgValue?: string;
+  isFloating?: boolean;
 }
 
 function formatSize(bytes: number) {
@@ -72,6 +73,7 @@ export default function DashboardPage() {
   const [editName, setEditName] = useState('');
   const [editBgType, setEditBgType] = useState('gradient');
   const [editBgValue, setEditBgValue] = useState('auto');
+  const [editIsFloating, setEditIsFloating] = useState(false);
   const [bgUploading, setBgUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -84,6 +86,7 @@ export default function DashboardPage() {
       setEditName(editModal.fileName);
       setEditBgType(editModal.bgType || 'gradient');
       setEditBgValue(editModal.bgValue || 'auto');
+      setEditIsFloating(editModal.isFloating ?? false);
     }
   }, [editModal]);
 
@@ -173,6 +176,7 @@ export default function DashboardPage() {
         fileName: editName,
         bgType: editBgType,
         bgValue: editBgValue,
+        isFloating: editIsFloating,
         lastModified: new Date().toISOString(),
       });
 
@@ -953,6 +957,23 @@ export default function DashboardPage() {
                     ✓ เลือกใช้รูปภาพสำเร็จ: {editBgValue}
                   </p>
                 )}
+              </div>
+
+              {/* ตั้งค่าสมุดลอย (Floating Book) */}
+              <div className="flex items-center justify-between py-3 border-t border-[#e2dfd5]/40 mt-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#17221c]">เอฟเฟกต์สมุดลอยได้ (Floating Book)</label>
+                  <p className="text-[10px] text-[#6e746f]">เปิดใช้งานเพื่อให้สมุดลอยขึ้นลงเบาๆ อย่างมีมิติ</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={editIsFloating}
+                    onChange={(e) => setEditIsFloating(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-neutral-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#243129]"></div>
+                </label>
               </div>
 
               {/* ปุ่มบันทึก */}

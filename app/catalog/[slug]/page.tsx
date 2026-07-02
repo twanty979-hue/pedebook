@@ -63,6 +63,7 @@ export default function CatalogSlugPage() {
       pdfUrl={pdfUrl}
       bgType={catalog.bgType || 'gradient'}
       bgValue={catalog.bgValue || 'auto'}
+      isFloating={catalog.isFloating ?? false}
     />
   );
 }
