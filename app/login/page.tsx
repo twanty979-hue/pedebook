@@ -152,7 +152,7 @@ export default function LoginPage() {
           </h1>
           <p className="mt-2 text-sm text-[#6e746f]">
             {mode === "login" && "เข้าสู่ระบบเพื่อจัดการและเผยแพร่แค็ตตาล็อกของคุณ"}
-            {mode === "register" && "ลงทะเบียนฟรีเพื่อเปลี่ยน PDF เป็นสมุดพลิกออนไลน์"}
+            {mode === "register" && "ลงทะเบียนเพื่อเปลี่ยน PDF เป็นสมุดพลิกออนไลน์"}
             {mode === "forgot" && "ระบบจะส่งลิงก์เพื่อรีเซ็ตรหัสผ่านใหม่ไปยังอีเมลของคุณ"}
           </p>
         </header>
@@ -196,7 +196,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* ฟอร์มทำรายการ */}
+        {/* ฟอร์มกรอกข้อมูลตามปกติ */}
         <form onSubmit={handleEmailAction} className="space-y-4">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-[#755a47] mb-1.5">
@@ -205,7 +205,7 @@ export default function LoginPage() {
             <input
               type="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="example@email.com"
               className="w-full rounded-xl border border-[#d9d7cd] bg-white px-4 py-2.5 text-sm text-[#17221c] outline-none focus:border-[#9a7257] focus:ring-1 focus:ring-[#9a7257] transition"
               required
@@ -233,11 +233,12 @@ export default function LoginPage() {
               <input
                 type="password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="ป้อนรหัสผ่านของคุณ"
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={mode === "login" ? "ป้อนรหัสผ่านของคุณ" : "ตั้งรหัสผ่าน (ขั้นต่ำ 6 ตัวอักษร)"}
                 className="w-full rounded-xl border border-[#d9d7cd] bg-white px-4 py-2.5 text-sm text-[#17221c] outline-none focus:border-[#9a7257] focus:ring-1 focus:ring-[#9a7257] transition"
                 required
                 disabled={loading}
+                minLength={6}
               />
             </div>
           )}
@@ -294,7 +295,7 @@ export default function LoginPage() {
                 className="font-bold text-[#9a7257] hover:underline"
                 disabled={loading}
               >
-                สมัครสมาชิกฟรี
+                สมัครสมาชิก
               </button>
             </>
           )}

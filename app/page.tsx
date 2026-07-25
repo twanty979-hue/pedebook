@@ -1,587 +1,397 @@
-"use client";
+import React from 'react';
+import type { Metadata } from 'next';
+import Image from 'next/image';
+import Link from 'next/link';
+import NavbarClient from './components/NavbarClient';
+import BookShelfClient from './components/BookShelfClient';
+import { 
+  SEO_CONFIG,
+  absoluteUrl, 
+  JsonLd, 
+  generateOrganizationJsonLd, 
+  generateWebSiteJsonLd, 
+  generateWebApplicationJsonLd, 
+  generateFAQJsonLd 
+} from './src/lib/seo';
 
-import React, {
-  forwardRef,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-import HTMLFlipBook from "react-pageflip";
-import { onAuthStateChanged, signOut, User } from "firebase/auth";
-import { auth } from "./src/lib/firebase";
-
-type Book = {
-  id: number;
-  title: string;
-  cover: string;
-  pages: string[];
+/** Homepage-specific metadata (canonical, OG, Twitter, and positive robots) */
+export const metadata: Metadata = {
+  alternates: {
+    canonical: absoluteUrl('/'),
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  openGraph: {
+    title: "แปลง PDF เป็น Flipbook ออนไลน์ | Pedebook",
+    description: "สร้างแคตตาล็อก E-Book และโบรชัวร์ออนไลน์จาก PDF เปิดอ่านแบบพลิกหน้า แชร์ลิงก์และ QR Code ได้ทันที รองรับมือถือและคอมพิวเตอร์",
+    type: "website",
+    url: absoluteUrl('/'),
+    siteName: SEO_CONFIG.siteName,
+    locale: "th_TH",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "แปลง PDF เป็น Flipbook ออนไลน์ | Pedebook",
+    description: "สร้างแคตตาล็อก E-Book และโบรชัวร์ออนไลน์จาก PDF เปิดอ่านแบบพลิกหน้า แชร์ลิงก์และ QR Code ได้ทันที รองรับมือถือและคอมพิวเตอร์",
+  },
 };
 
-const mockBooks: Book[] = [
+// Definition of FAQs for rendering and schema generation
+const FAQS = [
   {
-    id: 1,
-    title: "LIVING",
-    cover:
-      "https://placehold.co/800x1120/243129/ffffff?text=LIVING+2026",
-    pages: [
-      "https://placehold.co/800x1120/f4f2ec/243129?text=LIVING+2026",
-      "https://placehold.co/800x1120/e8dcc7/243129?text=Welcome+Home",
-      "https://placehold.co/800x1120/efe7d8/243129?text=Warm+Spaces",
-      "https://placehold.co/800x1120/f4f2ec/243129?text=Materials+and+Details",
-      "https://placehold.co/800x1120/e8dcc7/243129?text=Comfort+in+Every+Room",
-      "https://placehold.co/800x1120/243129/ffffff?text=Thank+You",
-    ],
+    question: "Pedebook คืออะไร?",
+    answer: "Pedebook คือเครื่องมือออนไลน์ที่ช่วยแปลงเอกสาร PDF ของคุณให้เป็นสมุดพลิก (Flipbook) หรือแคตตาล็อกออนไลน์แบบ 3D พลิกหน้าได้เสมือนจริง เปิดอ่านง่ายผ่านเว็บเบราว์เซอร์"
   },
   {
-    id: 2,
-    title: "SPACE",
-    cover:
-      "https://placehold.co/800x1120/9a7257/ffffff?text=SPACE+MAG",
-    pages: [
-      "https://placehold.co/800x1120/f8f3eb/412e24?text=The+New+Collection",
-      "https://placehold.co/800x1120/e7d6c7/412e24?text=Designed+for+Living",
-      "https://placehold.co/800x1120/f8f3eb/412e24?text=Your+Next+Room",
-      "https://placehold.co/800x1120/e7d6c7/412e24?text=Explore+More",
-      "https://placehold.co/800x1120/f8f3eb/412e24?text=Create+Your+Space",
-      "https://placehold.co/800x1120/e7d6c7/412e24?text=Pedebook",
-    ],
+    question: "ขั้นตอนการแปลง PDF เป็นแคตตาล็อกออนไลน์มีอะไรบ้าง?",
+    answer: "ใช้งานง่ายเพียง 3 ขั้นตอน: (1) เข้าสู่ระบบหรือสมัครสมาชิก (2) อัปโหลดไฟล์ PDF ของคุณเข้าสู่ระบบ และ (3) รับลิงก์แชร์เฉพาะและภาพ QR Code ไปส่งต่อให้ลูกค้าหรือเผยแพร่บนสื่อประชาสัมพันธ์ได้ทันที"
   },
   {
-    id: 3,
-    title: "NATURE",
-    cover:
-      "https://placehold.co/800x1120/cdbb9f/17221c?text=NATURE",
-    pages: [
-      "https://placehold.co/800x1120/f3eddf/17221c?text=Start+Here",
-      "https://placehold.co/800x1120/dde0cf/17221c?text=Calm+and+Natural",
-      "https://placehold.co/800x1120/f3eddf/17221c?text=Stories+in+Green",
-      "https://placehold.co/800x1120/dde0cf/17221c?text=Find+Your+Balance",
-      "https://placehold.co/800x1120/f3eddf/17221c?text=See+You+Again",
-      "https://placehold.co/800x1120/cdbb9f/17221c?text=Pedebook",
-    ],
+    question: "รองรับการเปิดอ่านบนสมาร์ทโฟนและแท็บเล็ตหรือไม่?",
+    answer: "รองรับมือถือ แท็บเล็ต และคอมพิวเตอร์ แสดงผลได้สวยงามทั้งระบบ iOS, Android, iPad และคอมพิวเตอร์ทั่วไป โดยอ่านผ่านเว็บเบราว์เซอร์ได้ทันทีโดยไม่ต้องติดตั้งแอปพลิเคชันเพิ่มเติม"
   },
+  {
+    question: "สามารถแชร์แคตตาล็อกสินค้าออนไลน์ผ่านช่องทางใดได้บ้าง?",
+    answer: "คุณสามารถคัดลอกลิงก์เฉพาะของแคตตาล็อกเพื่อแชร์ผ่านแอปพลิเคชัน LINE, LINE Official Account, Facebook Messenger หรือใช้วิธีส่งภาพคิวอาร์โค้ด (QR Code) เพื่อให้คู่ค้าสแกนอ่านอย่างรวดเร็ว"
+  }
 ];
 
-type BookCoverProps = {
-  src: string;
-  title: string;
-  back?: boolean;
-};
-
-const BookCover = forwardRef<HTMLDivElement, BookCoverProps>(
-  function BookCover({ src, title, back = false }, ref) {
-    return (
-      <div
-        ref={ref}
-        data-density="hard"
-        className="relative h-full w-full overflow-hidden bg-[#243129]"
-      >
-        <img
-          src={src}
-          alt={back ? `${title} back cover` : `${title} cover`}
-          className="h-full w-full object-cover"
-        />
-
-        {!back && (
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/60 via-black/10 to-transparent pb-9 text-center">
-            <span className="rounded-full border border-white/25 bg-black/20 px-4 py-2 text-[10px] font-bold tracking-[0.2em] text-white backdrop-blur-sm">
-              CLICK TO OPEN
-            </span>
-          </div>
-        )}
-      </div>
-    );
-  },
-);
-
-BookCover.displayName = "BookCover";
-
-type BookPageProps = {
-  src: string;
-  title: string;
-  pageNumber: number;
-};
-
-const BookPage = forwardRef<HTMLDivElement, BookPageProps>(
-  function BookPage({ src, title, pageNumber }, ref) {
-    return (
-      <div
-        ref={ref}
-        className="relative h-full w-full overflow-hidden bg-[#f4f2ec]"
-      >
-        <img
-          src={src}
-          alt={`${title} หน้า ${pageNumber}`}
-          className="h-full w-full object-cover"
-        />
-
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-black/30 to-transparent pb-4 pt-12">
-          <span className="rounded-full bg-white/90 px-3 py-1 text-[10px] font-bold tracking-widest text-[#243129] shadow-sm">
-            {pageNumber}
-          </span>
-        </div>
-      </div>
-    );
-  },
-);
-
-BookPage.displayName = "BookPage";
-
-function useBookSize() {
-  const [size, setSize] = useState({
-    width: 410,
-    height: 574,
-    isDesktop: true,
-    key: "410x574-desktop",
-  });
-
-  useLayoutEffect(() => {
-    const updateSize = () => {
-      const isDesktop = window.innerWidth >= 900;
-
-      // สัดส่วน A4 แนวตั้งประมาณ 800 x 1120
-      const pageRatio = 800 / 1120;
-
-      // เว้นที่ให้หัวข้อ ปุ่ม และขอบหน้าจอ
-      const verticalSpace = isDesktop ? 185 : 240;
-      const horizontalSpace = isDesktop ? 110 : 80;
-
-      const usableHeight = Math.max(
-        300,
-        window.innerHeight - verticalSpace,
-      );
-
-      const usableWidth = Math.max(
-        260,
-        window.innerWidth - horizontalSpace,
-      );
-
-      // จอคอมต้องเผื่อพื้นที่ไว้ 2 หน้า
-      const widthFromScreen = isDesktop ? usableWidth / 2 : usableWidth;
-      const widthFromHeight = usableHeight * pageRatio;
-
-      const width = Math.floor(
-        Math.min(520, widthFromScreen, widthFromHeight),
-      );
-
-      const height = Math.floor(width / pageRatio);
-
-      setSize({
-        width,
-        height,
-        isDesktop,
-        key: `${width}x${height}-${isDesktop ? "desktop" : "mobile"}`,
-      });
-    };
-
-    updateSize();
-
-    window.addEventListener("resize", updateSize);
-
-    return () => {
-      window.removeEventListener("resize", updateSize);
-    };
-  }, []);
-
-  return size;
-}
-
-function FlipBookModal({
-  book,
-  onClose,
-}: {
-  book: Book;
-  onClose: () => void;
-}) {
-  const flipBookRef = useRef<any>(null);
-
-  const [bookReady, setBookReady] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
-
-  const size = useBookSize();
-
-  const getPageFlip = () => {
-    return (
-      flipBookRef.current?.pageFlip?.() ??
-      flipBookRef.current?.getPageFlip?.()
-    );
-  };
-
-  // หน้าแรก = ปกหน้า
-  const isFrontCover = currentPage <= 0;
-
-  // จำนวนทั้งหมดคือ ปกหน้า + เนื้อหา + ปกหลัง
-  const isBackCover = currentPage >= book.pages.length + 1;
-
-const isBookOpen =
-  size.isDesktop && !isFrontCover && !isBackCover;
-
-/*
-  ปกหน้า: library วางไว้ช่องขวา จึงเลื่อน canvas กลับซ้าย 1 หน้า
-  หนังสือกาง: ใช้ 2 หน้าเต็ม จัดกลางตามปกติ
-  ปกหลัง: อยู่ฝั่งซ้าย จึงไม่ต้องเลื่อน
-*/
-const stageWidth = isBookOpen ? size.width * 2 : size.width;
-
-const flipBookOffsetX = size.isDesktop && isFrontCover ? -size.width : 0;
-  useEffect(() => {
-    const html = document.documentElement;
-    const body = document.body;
-
-    const scrollbarWidth = window.innerWidth - html.clientWidth;
-
-    const oldHtmlOverflow = html.style.overflow;
-    const oldBodyOverflow = body.style.overflow;
-    const oldBodyPaddingRight = body.style.paddingRight;
-
-    html.style.overflow = "hidden";
-    body.style.overflow = "hidden";
-
-    if (scrollbarWidth > 0) {
-      body.style.paddingRight = `${scrollbarWidth}px`;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-
-      if (event.key === "ArrowLeft") {
-        getPageFlip()?.flipPrev();
-      }
-
-      if (event.key === "ArrowRight") {
-        getPageFlip()?.flipNext();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      html.style.overflow = oldHtmlOverflow;
-      body.style.overflow = oldBodyOverflow;
-      body.style.paddingRight = oldBodyPaddingRight;
-
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [onClose]);
-
-  useEffect(() => {
-    setBookReady(false);
-
-    const timeout = window.setTimeout(() => {
-      getPageFlip()?.turnToPage(0);
-
-      setCurrentPage(0);
-      setBookReady(true);
-    }, 80);
-
-    return () => {
-      window.clearTimeout(timeout);
-    };
-  }, [book.id, size.key]);
-
-  return (
-    <div
-      className="fixed inset-0 z-[999] h-[100dvh] w-screen"
-      onClick={onClose}
-    >
-      <div className="flex h-full w-full items-center justify-center px-4 py-5 sm:px-6">
-        {/* กล่องนี้มีขนาดตามสถานะหนังสือ จึงจัดกลางจริง */}
-        <div
-          className="relative overflow-visible transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-          style={{
-            width: `${stageWidth}px`,
-            height: `${size.height}px`,
-          }}
-          onClick={(event) => event.stopPropagation()}
-        >
-          {/* เงาใต้หนังสือ */}
-          <div
-            className="pointer-events-none absolute left-1/2 top-[91%] h-10 -translate-x-1/2 rounded-full bg-black/20 blur-2xl transition-all duration-500 sm:h-14"
-            style={{
-              width: isBookOpen ? "78%" : "65%",
-            }}
-          />
-
-         <div
-  className="absolute left-0 top-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-  style={{
-    transform: `translateX(${flipBookOffsetX}px)`,
-  }}
->
-  <div
-    className={
-      bookReady
-        ? "pedebook-floating-book"
-        : "pointer-events-none opacity-0"
-    }
-  >
-    {/* @ts-ignore */}
-    <HTMLFlipBook
-              key={`${book.id}-${size.key}`}
-              ref={flipBookRef}
-              width={size.width}
-              height={size.height}
-              size="fixed"
-              minWidth={150}
-              maxWidth={520}
-              minHeight={210}
-              maxHeight={728}
-              drawShadow
-              maxShadowOpacity={0.5}
-              flippingTime={900}
-              startZIndex={10}
-              autoSize={false}
-              usePortrait={!size.isDesktop}
-              showCover={true}
-              mobileScrollSupport
-              className="pedebook-flipbook"
-              onFlip={(event: { data: number }) => {
-                setCurrentPage(event.data);
-              }}
-            >
-              <BookCover src={book.cover} title={book.title} />
-
-              {book.pages.map((page, index) => (
-                <BookPage
-                  key={`${book.id}-page-${index}`}
-                  src={page}
-                  title={book.title}
-                  pageNumber={index + 1}
-                />
-              ))}
-
-              <BookCover
-                src={book.cover}
-                title={book.title}
-                back
-              />
-             </HTMLFlipBook>
-  </div>
-</div>
-        </div>
-      </div>
-    </div>
-  );
-}
 export default function LandingPage() {
-  const [activeBook, setActiveBook] = useState<Book | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const canonicalUrl = absoluteUrl('/');
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Sign out error", error);
-    }
-  };
+  // Schema data configurations
+  const orgSchema = generateOrganizationJsonLd(canonicalUrl);
+  const websiteSchema = generateWebSiteJsonLd(canonicalUrl);
+  const webAppSchema = generateWebApplicationJsonLd(canonicalUrl);
+  const faqSchema = generateFAQJsonLd(canonicalUrl, FAQS);
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#f6f4ee] font-sans text-[#17221c]">
+      {/* JSON-LD Structured Data */}
+      <JsonLd data={orgSchema} />
+      <JsonLd data={websiteSchema} />
+      <JsonLd data={webAppSchema} />
+      <JsonLd data={faqSchema} />
+
       <style
-  dangerouslySetInnerHTML={{
-    __html: `
-      html {
-        scrollbar-gutter: stable;
-      }
+        dangerouslySetInnerHTML={{
+          __html: `
+            html {
+              scrollbar-gutter: stable;
+            }
 
-      .pedebook-flipbook .stf__item {
-        box-shadow: 0 28px 70px rgba(0, 0, 0, 0.28);
-        border-radius: 10px;
-        overflow: hidden;
-      }
+            .pedebook-flipbook .stf__item {
+              box-shadow: 0 28px 70px rgba(0, 0, 0, 0.28);
+              border-radius: 10px;
+              overflow: hidden;
+            }
 
-      @keyframes pedebook-floating-book-in {
-        0% {
-          opacity: 0;
-          transform: translateY(40px) scale(0.94) rotateX(8deg);
-        }
-        100% {
-          opacity: 1;
-          transform: translateY(0) scale(1) rotateX(0deg);
-        }
-      }
+            @keyframes pedebook-floating-book-in {
+              0% {
+                opacity: 0;
+                transform: translateY(40px) scale(0.94) rotateX(8deg);
+              }
+              100% {
+                opacity: 1;
+                transform: translateY(0) scale(1) rotateX(0deg);
+              }
+            }
 
-      @keyframes pedebook-soft-float {
-        0%, 100% {
-          transform: translateY(0px);
-        }
-        50% {
-          transform: translateY(-8px);
-        }
-      }
+            @keyframes pedebook-soft-float {
+              0%, 100% {
+                transform: translateY(0px);
+              }
+              50% {
+                transform: translateY(-8px);
+              }
+            }
 
-      .pedebook-floating-book {
-        animation:
-          pedebook-floating-book-in 260ms cubic-bezier(.2,.8,.2,1) both,
-          pedebook-soft-float 4s ease-in-out 260ms infinite;
-        transform-origin: center center;
-        will-change: transform, opacity;
-      }
+            .pedebook-floating-book {
+              animation:
+                pedebook-floating-book-in 260ms cubic-bezier(.2,.8,.2,1) both,
+                pedebook-soft-float 4s ease-in-out 260ms infinite;
+              transform-origin: center center;
+              will-change: transform, opacity;
+            }
 
-      @keyframes float-slow {
-        0%, 100% {
-          transform: translateY(0px) rotate(0deg);
-        }
-        50% {
-          transform: translateY(-15px) rotate(2deg);
-        }
-      }
+            @keyframes float-slow {
+              0%, 100% {
+                transform: translateY(0px) rotate(0deg);
+              }
+              50% {
+                transform: translateY(-15px) rotate(2deg);
+              }
+            }
 
-      .animate-float {
-        animation: float-slow 6s ease-in-out infinite;
-      }
-    `,
-  }}
-/>
+            .animate-float {
+              animation: float-slow 6s ease-in-out infinite;
+            }
+          `,
+        }}
+      />
 
-      {activeBook && (
-        <FlipBookModal
-          book={activeBook}
-          onClose={() => setActiveBook(null)}
-        />
-      )}
+      {/* Navigation Header */}
+      <NavbarClient />
 
-      <nav className="relative z-10 flex w-full items-center justify-between px-4 py-6 sm:px-8 lg:px-12">
-        <a href="/" className="flex items-center gap-2.5">
-          <img
-            src="/logo.png"
-            alt="Pedebook Logo"
-            className="h-10 w-10 rounded-xl object-contain shadow-sm"
-          />
-          <div className="flex flex-col">
-            <span className="text-lg font-bold tracking-tight text-[#17221c] leading-tight">
-              Pedebook
-            </span>
-            <span className="text-[10px] font-semibold text-[#9a7257] tracking-wide leading-none">
-              Digital Flipbook Platform
-            </span>
-          </div>
-        </a>
-
-        <div className="flex items-center gap-4">
-          {user ? (
-            <a
-              href="/dashboard"
-              className="flex items-center gap-2 rounded-full border border-[#d9d7cd] bg-white/60 px-3 py-1.5 shadow-sm backdrop-blur hover:bg-[#243129]/5 transition-all duration-300 cursor-pointer"
-            >
-              {user.photoURL ? (
-                <img
-                  src={user.photoURL}
-                  alt={user.displayName || "User Profile"}
-                  className="h-7 w-7 rounded-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-[#243129] text-xs font-bold text-[#e8dcc7]">
-                  {user.email?.charAt(0).toUpperCase() || "U"}
-                </span>
-              )}
-              <div className="hidden flex-col text-left sm:flex">
-                <span className="text-xs font-bold leading-tight text-[#17221c]">
-                  {user.displayName || "ผู้ใช้งาน"}
-                </span>
-                <span className="text-[10px] leading-tight text-[#6e746f]">
-                  {user.email}
-                </span>
-              </div>
-            </a>
-          ) : (
-            <div className="flex items-center gap-4">
-              <a
-                href="/login"
-                className="hidden text-sm font-semibold text-[#755a47] transition hover:text-[#243129] sm:block"
-              >
-                เข้าสู่ระบบ
-              </a>
-
-              <a
-                href="/login"
-                className="rounded-full bg-[#243129] px-6 py-2.5 text-sm font-bold text-[#e8dcc7] shadow-[0_4px_12px_rgba(36,49,41,0.2)] transition hover:bg-[#314238]"
-              >
-                เริ่มสร้างฟรี
-              </a>
-            </div>
-          )}
-        </div>
-      </nav>
-
+      {/* Hero Section */}
       <section className="relative flex flex-col items-center justify-center py-10 text-center lg:py-20 overflow-hidden">
         <div className="animate-float absolute left-1/2 top-[30%] h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#d3b894]/30 blur-[90px] lg:h-[600px] lg:w-[600px]" />
- 
+
         <div className="relative z-10 mx-auto max-w-[1200px] px-5">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#d9d7cd] bg-white/60 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-[#755a47] shadow-sm backdrop-blur">
             <span className="h-2 w-2 animate-pulse rounded-full bg-[#9a7257]" />
             Digital Publishing Platform
           </div>
 
-          <h1 className="text-4xl font-medium leading-[1.05] tracking-tight text-[#17221c] sm:text-5xl lg:text-[72px]">
-            Publish Interactive <br className="hidden sm:block" />
-            Catalogs &{" "}
-            <span className="font-serif italic text-[#9a7257]">
-              Brochures Online
-            </span>
+          {/* H1 SEO Main Header */}
+          <h1 className="text-4xl font-medium leading-[1.1] tracking-tight text-[#17221c] sm:text-5xl lg:text-[72px]">
+            แปลง PDF เป็น <br className="sm:hidden" />
+            <span className="font-serif italic text-[#9a7257]">Flipbook</span> และแคตตาล็อกออนไลน์
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg text-[#6e746f] sm:text-xl font-sans">
-            เปลี่ยนไฟล์ PDF ของคุณให้เป็นสมุดเปิดอ่านดิจิทัล (Digital Flipbook) พลิกสมจริงแบบ 3D<br className="hidden sm:block" />
+            เปลี่ยนเอกสารนำเสนอและคู่มือ PDF ของคุณให้เป็นสมุดพลิก 3D ดิจิทัลเสมือนจริง เปิดหน้าสมจริง<br className="hidden sm:block" />
             <span className="font-semibold text-[#8a654d]">
-              ออกแบบสวยงาม รองรับทุกอุปกรณ์ทั้ง iOS & Android สแกนเข้าอ่านได้ทันทีผ่าน QR Code
+              แชร์ลิงก์ด่วนและสร้างคิวอาร์โค้ดได้ทันที รองรับมือถือ แท็บเล็ต และคอมพิวเตอร์ ออกแบบเพื่อธุรกิจและร้านค้าไทย
             </span>
           </p>
 
-          {/* ชั้นหนังสือตัวอย่าง Flipbook */}
-          <div className="mb-16 mt-20 flex flex-col items-center justify-center gap-10">
-            <div className="relative flex w-full max-w-[900px] items-end justify-center gap-4 border-b-[20px] border-[#c4a77d] px-4 pb-1 shadow-[0_35px_40px_-15px_rgba(154,114,87,0.3)] sm:gap-12 sm:px-12 lg:border-b-[24px]">
-              <div className="absolute -bottom-[24px] left-10 h-8 w-6 rounded-b-sm bg-[#a88a5d] shadow-inner lg:-bottom-[30px] lg:h-10 lg:w-8" />
-              <div className="absolute -bottom-[24px] right-10 h-8 w-6 rounded-b-sm bg-[#a88a5d] shadow-inner lg:-bottom-[30px] lg:h-10 lg:w-8" />
+          {/* Client-Side Interactive Books Shelf */}
+          <BookShelfClient />
+        </div>
+      </section>
 
-              {mockBooks.map((book, index) => (
-                <button
-                  key={book.id}
-                  type="button"
-                  onClick={() => setActiveBook(book)}
-                  className={`group relative z-10 cursor-pointer text-left outline-none transition-all duration-500 ease-out hover:-translate-y-12 hover:scale-110 focus-visible:ring-4 focus-visible:ring-[#9a7257]/45 ${
-                    index === 1 ? "z-20 scale-105 hover:scale-115" : ""
-                  }`}
-                >
-                  <div className="relative h-[180px] w-[110px] overflow-hidden rounded-r-[4px] border-l-[3px] border-white/80 shadow-[-10px_10px_20px_rgba(50,43,34,0.2)] transition-all duration-500 group-hover:shadow-[-20px_25px_40px_rgba(50,43,34,0.3)] sm:h-[260px] sm:w-[170px] lg:h-[300px] lg:w-[200px]">
-                    <img
-                      src={book.cover}
-                      alt={book.title}
-                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
+      {/* Value Proposition / Benefits Section */}
+      <section className="relative py-16 bg-white/50 border-y border-[#e2dfd5] backdrop-blur-sm">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl lg:text-center">
+            <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-[#9a7257]">ทำไมต้องเลือกใช้ Pedebook?</h2>
+            <p className="mt-2 text-3xl font-medium tracking-tight text-[#17221c] sm:text-4xl">
+              เปลี่ยนเอกสารธรรมดาให้เป็นความประทับใจระดับพรีเมียม
+            </p>
+            <p className="mt-4 text-base text-[#6e746f]">
+              เรามอบโซลูชันที่ง่ายและรวดเร็วที่สุดสำหรับธุรกิจ SME ฝ่ายขาย และผู้ประกอบการไทยในการนำเสนอผลงานผ่านสมุดดิจิทัล
+            </p>
+          </div>
 
-                    {index === 0 && (
-                      <span className="absolute -right-7 top-5 rotate-45 bg-[#9a7257] px-8 py-1.5 text-[10px] font-bold text-white shadow-md">
-                        NEW
-                      </span>
-                    )}
-
-                    <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
-                      <span className="rounded-full bg-white/20 px-4 py-2 text-xs font-bold tracking-widest text-white backdrop-blur-md">
-                        CLICK TO READ
-                      </span>
-                    </span>
+          <div className="mx-auto mt-12 max-w-5xl sm:mt-16 lg:mt-20">
+            <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-10 lg:max-w-none lg:grid-cols-2">
+              <div className="relative pl-16">
+                <dt className="text-base font-bold text-[#17221c]">
+                  <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-xl bg-[#243129] text-[#e8dcc7]">
+                    ✓
                   </div>
+                  แปลงไฟล์ง่าย ประสิทธิภาพสูง
+                </dt>
+                <dd className="mt-2 text-sm text-[#6e746f]">
+                  เพียงลากและวางเอกสาร PDF เข้าสู่ระบบ ระบบจะเปลี่ยนเป็นแคตตาล็อกหน้าสมุดพลิกทันทีโดยอัตโนมัติ
+                </dd>
+              </div>
 
-                  <span className="absolute -bottom-1 left-0 h-1.5 w-full bg-[#e8dcc7]" />
-                  <span className="absolute -right-1 top-0 h-full w-1.5 origin-bottom-right skew-y-[45deg] bg-[#d3b894]" />
-                </button>
-              ))}
+              <div className="relative pl-16">
+                <dt className="text-base font-bold text-[#17221c]">
+                  <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-xl bg-[#243129] text-[#e8dcc7]">
+                    ✓
+                  </div>
+                  สร้าง QR Code และลิงก์สำหรับแชร์
+                </dt>
+                <dd className="mt-2 text-sm text-[#6e746f]">
+                  รับภาพคิวอาร์โค้ดขนาดใหญ่ คมชัด และลิงก์เฉพาะของแคตตาล็อก นำไปส่งต่อในห้องแชต LINE หรือวางบนป้ายหน้าร้านค้าของคุณได้อย่างง่ายดาย
+                </dd>
+              </div>
+
+              <div className="relative pl-16">
+                <dt className="text-base font-bold text-[#17221c]">
+                  <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-xl bg-[#243129] text-[#e8dcc7]">
+                    ✓
+                  </div>
+                  เอฟเฟกต์พลิก 3D ลื่นไหลแบบมีมิติ
+                </dt>
+                <dd className="mt-2 text-sm text-[#6e746f]">
+                  ช่วยเพิ่มประสบการณ์การอ่านให้ดูสนุกและพรีเมียมมากขึ้นด้วยฟังก์ชันสมุดกางเปิดหน้า พลิกกระดาษ 3D สมจริง สะกดสายตาลูกค้า
+                </dd>
+              </div>
+
+              <div className="relative pl-16">
+                <dt className="text-base font-bold text-[#17221c]">
+                  <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-xl bg-[#243129] text-[#e8dcc7]">
+                    ✓
+                  </div>
+                  รองรับมือถือ แท็บเล็ต และคอมพิวเตอร์
+                </dt>
+                <dd className="mt-2 text-sm text-[#6e746f]">
+                  หมดปัญหาความยุ่งยากในมุมมองโทรศัพท์มือถือ หน้ากระดาษจะปรับขนาดให้เข้ากับอัตราส่วนของสมาร์ทโฟนโดยอัตโนมัติ
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      {/* 3 Steps Guide Section */}
+      <section className="py-16">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl lg:text-center">
+            <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-[#9a7257]">คู่มือการใช้งาน</h2>
+            <p className="mt-2 text-3xl font-medium tracking-tight text-[#17221c] sm:text-4xl">
+              เริ่มต้นสร้างเอกสารดิจิทัลใน 3 ขั้นตอน
+            </p>
+          </div>
+
+          <div className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-8 sm:grid-cols-3">
+            <div className="bg-white/80 border border-[#e2dfd5] rounded-3xl p-8 backdrop-blur-md shadow-sm relative overflow-hidden text-center">
+              <span className="absolute -right-2 -top-2 text-7xl font-bold font-serif text-neutral-100 select-none">1</span>
+              <h3 className="text-lg font-bold text-[#17221c] z-10 relative">เข้าสู่ระบบเพื่อจัดการ</h3>
+              <p className="mt-2 text-sm text-[#6e746f] z-10 relative">
+                ลงชื่อเข้าใช้งานอย่างสะดวกด้วย Google Account หรือใช้อีเมลเพื่อเข้าสู่แผงควบคุมส่วนตัวเฉพาะบัญชีของคุณ
+              </p>
+            </div>
+
+            <div className="bg-white/80 border border-[#e2dfd5] rounded-3xl p-8 backdrop-blur-md shadow-sm relative overflow-hidden text-center">
+              <span className="absolute -right-2 -top-2 text-7xl font-bold font-serif text-neutral-100 select-none">2</span>
+              <h3 className="text-lg font-bold text-[#17221c] z-10 relative">อัปโหลดไฟล์ PDF</h3>
+              <p className="mt-2 text-sm text-[#6e746f] z-10 relative">
+                เลือกคู่มือ แผ่นพับ หรือแคตตาล็อกสินค้าในรูปแบบเอกสาร PDF เพื่อดำเนินการอัปโหลดเข้าสู่ระบบ
+              </p>
+            </div>
+
+            <div className="bg-white/80 border border-[#e2dfd5] rounded-3xl p-8 backdrop-blur-md shadow-sm relative overflow-hidden text-center">
+              <span className="absolute -right-2 -top-2 text-7xl font-bold font-serif text-neutral-100 select-none">3</span>
+              <h3 className="text-lg font-bold text-[#17221c] z-10 relative">รับลิงก์และแชร์ใช้งาน</h3>
+              <p className="mt-2 text-sm text-[#6e746f] z-10 relative">
+                รับลิงก์เฉพาะเจาะจงพร้อมภาพ QR Code ความคมชัดสูง เพื่อส่งทาง LINE แชต หรือพิมพ์แนบสื่อต่างๆ ได้อย่างง่ายดาย
+              </p>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Target Audience / Use cases Section */}
+      <section className="py-16 bg-[#efe7d8]/30 border-y border-[#e2dfd5]">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl lg:text-center">
+            <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-[#9a7257]">กลุ่มผู้ใช้ที่แนะนำ</h2>
+            <p className="mt-2 text-3xl font-medium tracking-tight text-[#17221c] sm:text-4xl">
+              ตอบโจทย์งานเอกสารและสื่อนำเสนอของทุกรูปแบบธุรกิจ
+            </p>
+          </div>
+
+          <div className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-8 sm:grid-cols-2">
+            <div className="bg-white/80 border border-[#e2dfd5] rounded-3xl p-6 backdrop-blur-md shadow-sm flex items-start gap-4">
+              <span className="text-2xl mt-1">🏪</span>
+              <div>
+                <h3 className="text-base font-bold text-[#17221c]">ผู้ประกอบการ SME และร้านค้าออนไลน์</h3>
+                <p className="mt-1.5 text-xs text-[#6e746f] leading-relaxed">
+                  แปลงโบรชัวร์สินค้าหรือแคตตาล็อกหน้ากระดาษแบบเดิม ให้แชร์และเปิดดูได้บนมือถือลูกค้าทันที ช่วยให้ส่งข้อมูลสินค้าให้ลูกค้าได้สะดวกและภาพลักษณ์ทันสมัย
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white/80 border border-[#e2dfd5] rounded-3xl p-6 backdrop-blur-md shadow-sm flex items-start gap-4">
+              <span className="text-2xl mt-1">👔</span>
+              <div>
+                <h3 className="text-base font-bold text-[#17221c]">ฝ่ายขายและทีมงานฝ่ายการตลาด</h3>
+                <p className="mt-1.5 text-xs text-[#6e746f] leading-relaxed">
+                  นำเสนอโปรโมชันสินค้า ข้อมูลสเปกต่างๆ ในรูปแบบ Flipbook พรีเมียม ส่งต่อง่ายทาง LINE แชต หรือ LINE Official Account รวดเร็ว
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white/80 border border-[#e2dfd5] rounded-3xl p-6 backdrop-blur-md shadow-sm flex items-start gap-4">
+              <span className="text-2xl mt-1">🏫</span>
+              <div>
+                <h3 className="text-base font-bold text-[#17221c]">สถาบันการศึกษาและโรงเรียน</h3>
+                <p className="mt-1.5 text-xs text-[#6e746f] leading-relaxed">
+                  จัดทำวารสารประชาสัมพันธ์โรงเรียน รายงานผลงานประจำปี E-Book หรือสมุดบันทึกภาพกิจกรรมของนักเรียน ให้น่าสนใจ เปิดอ่านแบบมีมิติ
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white/80 border border-[#e2dfd5] rounded-3xl p-6 backdrop-blur-md shadow-sm flex items-start gap-4">
+              <span className="text-2xl mt-1">☕</span>
+              <div>
+                <h3 className="text-base font-bold text-[#17221c]">ร้านอาหาร ร้านกาแฟ และแบรนด์บริการ</h3>
+                <p className="mt-1.5 text-xs text-[#6e746f] leading-relaxed">
+                  สร้างสรรค์เมนูอาหารดิจิทัล (Digital Menu) แผ่นพับแนะนำบริการ หรือคู่มือการดูแลรักษาสินค้า ให้สแกนหน้าร้านผ่าน QR Code ประหยัดเวลาพิมพ์กระดาษ
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQs Section */}
+      <section className="py-16">
+        <div className="mx-auto max-w-4xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl lg:text-center mb-12">
+            <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-[#9a7257]">คำถามที่พบบ่อย (FAQs)</h2>
+            <p className="mt-2 text-3xl font-medium tracking-tight text-[#17221c] sm:text-4xl">
+              ข้อสงสัยและคำแนะนำการใช้งานเบื้องต้น
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            {FAQS.map((faq, index) => (
+              <div 
+                key={index} 
+                className="bg-white/80 border border-[#e2dfd5] rounded-3xl p-6 backdrop-blur-md shadow-sm"
+              >
+                <h3 className="text-base font-bold text-[#17221c] flex items-center gap-2">
+                  <span className="text-[#9a7257] font-serif font-bold">Q.</span> {faq.question}
+                </h3>
+                <p className="mt-2 text-sm text-[#6e746f] pl-6 border-l border-[#d9d7cd] leading-relaxed">
+                  {faq.answer}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 bg-[#243129] text-[#e8dcc7] border-t border-[#17221c] relative overflow-hidden">
+        <div className="absolute right-[-10%] top-[-30%] w-[500px] h-[500px] rounded-full bg-[#d3b894]/10 blur-[100px] pointer-events-none" />
+        <div className="mx-auto max-w-5xl px-6 text-center relative z-10">
+          <h2 className="text-3xl font-medium tracking-tight sm:text-4xl">
+            เริ่มแปลงเอกสาร PDF เป็น Flipbook ของคุณวันนี้
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-sm text-[#c4a77d]">
+            แผงควบคุมระบบสำหรับสมาชิก อัปโหลด สร้าง และรับคิวอาร์โค้ดไปใช้แชร์ได้ทันที
+          </p>
+          <div className="mt-8 flex justify-center">
+            <Link
+              href="/login"
+              className="rounded-full bg-[#e8dcc7] px-8 py-3.5 text-sm font-bold text-[#243129] shadow-[0_4px_16px_rgba(232,220,199,0.2)] hover:bg-white active:scale-[0.98] transition-all cursor-pointer"
+            >
+              เริ่มสร้างแคตตาล็อก
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-8 bg-[#17221c] text-[#6e746f] text-xs border-t border-[#121b16]">
+        <div className="mx-auto max-w-7xl px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Image src="/logo.png" alt="Pedebook Logo" width={24} height={24} className="rounded-lg opacity-80" />
+            <span>&copy; {new Date().getFullYear()} Pedebook. All rights reserved.</span>
+          </div>
+          <div className="flex gap-4">
+            <Link href="/login" className="hover:text-white transition">เข้าสู่ระบบ</Link>
+            <span className="text-neutral-700">|</span>
+            <span className="text-neutral-500">Digital Flipbook & E-Catalog Generator</span>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
