@@ -1,69 +1,98 @@
-'use client';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import CatalogViewer from './CatalogViewer';
+import {
+  absoluteUrl,
+  generateDigitalDocumentJsonLd,
+  JsonLd,
+} from '../../src/lib/seo';
+import {
+  catalogDescription,
+  catalogTitle,
+  getCatalogBySlug,
+} from '../../src/lib/catalogs';
 
-import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
-import { useParams } from 'next/navigation';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../../src/lib/firebase';
+export const dynamic = 'force-dynamic';
 
-const EbookViewer = dynamic(() => import('../../components/EbookViewer'), {
-  ssr: false,
-  loading: () => (
-    <div style={{ color: '#aaa', textAlign: 'center', padding: 80, letterSpacing: 4, textTransform: 'uppercase', fontSize: 13, background: '#1c1c1e', minHeight: '100vh' }}>
-      กำลังเตรียมหน้ากระดาษครับนาย...
-    </div>
-  ),
-});
+type CatalogPageProps = {
+  params: Promise<{ slug: string }>;
+};
 
-export default function CatalogSlugPage() {
-  const params = useParams();
-  const slug = params?.slug as string;
-  const [catalog, setCatalog] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!slug) return;
-    
-    // ใช้ onSnapshot เพื่อดึงและอัปเดตการตั้งค่าสีพื้นหลังได้แบบเรียลไทม์โดยไม่ต้องรีเฟรชหน้า
-    const q = query(collection(db, 'catalogs'), where('slug', '==', slug));
-    const unsubscribe = onSnapshot(
-      q,
-      (snap) => {
-        if (!snap.empty) {
-          setCatalog(snap.docs[0].data());
-        }
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Error listening to catalog updates:', err);
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [slug]);
-
-  if (loading) {
-    return (
-      <div style={{ color: '#aaa', textAlign: 'center', padding: 80, letterSpacing: 4, textTransform: 'uppercase', fontSize: 13, background: '#1c1c1e', minHeight: '100vh' }}>
-        กำลังเตรียมหน้ากระดาษครับนาย...
-      </div>
-    );
-  }
+export async function generateMetadata({ params }: CatalogPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const catalog = await getCatalogBySlug(slug);
 
   if (!catalog) {
-    return <div className="text-center py-20 text-white font-sans bg-[#1c1c1e] min-h-screen flex items-center justify-center">ไม่พบลิงก์แค็ตตาล็อกนี้ครับ</div>;
+    return {
+      title: 'ไม่พบแค็ตตาล็อก',
+      robots: { index: false, follow: false },
+    };
   }
 
-  // ส่ง slug ให้ server โหลด R2 PDF ผ่าน proxy เพื่อหลีกเลี่ยง CORS
-  const pdfUrl = `/api/pdf-proxy?slug=${encodeURIComponent(slug)}&t=${Date.now()}`;
+  const title = catalogTitle(catalog);
+  const description = catalogDescription(catalog);
+  const canonical = absoluteUrl(`/catalog/${slug}`);
+  const indexable = catalog.isPublic !== false && catalog.allowIndexing === true;
+  const image = catalog.coverImage || absoluteUrl('/pedebook-logo-lockup.png');
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    robots: {
+      index: indexable,
+      follow: true,
+      googleBot: { index: indexable, follow: true, 'max-image-preview': 'large' },
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      type: 'article',
+      locale: 'th_TH',
+      siteName: 'Pedebook',
+      images: [{ url: image, alt: title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [image],
+    },
+  };
+}
+
+export default async function CatalogPage({ params }: CatalogPageProps) {
+  const { slug } = await params;
+  const catalog = await getCatalogBySlug(slug);
+
+  if (!catalog) notFound();
+
+  const title = catalogTitle(catalog);
+  const description = catalogDescription(catalog);
+  const canonical = absoluteUrl(`/catalog/${slug}`);
 
   return (
-    <EbookViewer
-      pdfUrl={pdfUrl}
-      bgType={catalog.bgType || 'gradient'}
-      bgValue={catalog.bgValue || 'auto'}
-      isFloating={catalog.isFloating ?? false}
-    />
+    <>
+      <section className="sr-only" aria-label={title}>
+        <h1>{title}</h1>
+        <p>{description}</p>
+      </section>
+      <JsonLd
+        data={generateDigitalDocumentJsonLd({
+          url: canonical,
+          title,
+          description,
+          image: catalog.coverImage || absoluteUrl('/pedebook-logo-lockup.png'),
+          dateModified: catalog.updatedAt || catalog.lastModified,
+        })}
+      />
+      <CatalogViewer
+        slug={slug}
+        bgType={catalog.bgType}
+        bgValue={catalog.bgValue}
+        isFloating={catalog.isFloating}
+      />
+    </>
   );
 }

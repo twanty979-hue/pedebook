@@ -31,8 +31,8 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "แปลง PDF เป็น Flipbook ออนไลน์ | Pedebook",
-    description: "สร้างแคตตาล็อก E-Book และโบรชัวร์ออนไลน์จาก PDF เปิดอ่านแบบพลิกหน้า แชร์ลิงก์และ QR Code ได้ทันที รองรับมือถือและคอมพิวเตอร์",
+    title: "แปลง PDF เป็น Flipbook ออนไลน์ฟรี | Pedebook",
+    description: "สร้างแคตตาล็อก E-Book และโบรชัวร์ออนไลน์ฟรีจาก PDF เปิดอ่านแบบพลิกหน้า แชร์ลิงก์และ QR Code ได้ทันที รองรับมือถือและคอมพิวเตอร์",
     type: "website",
     url: absoluteUrl('/'),
     siteName: SEO_CONFIG.siteName,
@@ -40,8 +40,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "แปลง PDF เป็น Flipbook ออนไลน์ | Pedebook",
-    description: "สร้างแคตตาล็อก E-Book และโบรชัวร์ออนไลน์จาก PDF เปิดอ่านแบบพลิกหน้า แชร์ลิงก์และ QR Code ได้ทันที รองรับมือถือและคอมพิวเตอร์",
+    title: "แปลง PDF เป็น Flipbook ออนไลน์ฟรี | Pedebook",
+    description: "สร้างแคตตาล็อก E-Book และโบรชัวร์ออนไลน์ฟรีจาก PDF เปิดอ่านแบบพลิกหน้า แชร์ลิงก์และ QR Code ได้ทันที รองรับมือถือและคอมพิวเตอร์",
   },
 };
 
@@ -147,9 +147,20 @@ export default function LandingPage() {
         <div className="animate-float absolute left-1/2 top-[30%] h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#d3b894]/30 blur-[90px] lg:h-[600px] lg:w-[600px]" />
 
         <div className="relative z-10 mx-auto max-w-[1200px] px-5">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#d9d7cd] bg-white/60 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-[#755a47] shadow-sm backdrop-blur">
+          <div className="mx-auto mb-7 w-fit rounded-[28px] border border-[#e7dfd2] bg-white/90 px-4 py-2 shadow-[0_16px_40px_rgba(36,49,41,0.08)] backdrop-blur">
+            <Image
+              src="/pedebook-logo-lockup.png"
+              alt="Pedebook"
+              width={360}
+              height={108}
+              priority
+              className="h-auto w-[230px] mix-blend-multiply sm:w-[310px]"
+            />
+          </div>
+
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#d9d7cd] bg-white/60 px-4 py-2 text-xs font-bold tracking-[0.12em] text-[#755a47] shadow-sm backdrop-blur">
             <span className="h-2 w-2 animate-pulse rounded-full bg-[#9a7257]" />
-            Digital Publishing Platform
+            สร้างได้ฟรี · แชร์ได้ทันที
           </div>
 
           {/* H1 SEO Main Header */}
@@ -382,7 +393,7 @@ export default function LandingPage() {
       <footer className="py-8 bg-[#17221c] text-[#6e746f] text-xs border-t border-[#121b16]">
         <div className="mx-auto max-w-7xl px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Pedebook Logo" width={24} height={24} className="rounded-lg opacity-80" />
+            <Image src="/pedebook-icon.png" alt="Pedebook Logo" width={24} height={24} className="rounded-lg opacity-80" />
             <span>&copy; {new Date().getFullYear()} Pedebook. All rights reserved.</span>
           </div>
           <div className="flex gap-4">

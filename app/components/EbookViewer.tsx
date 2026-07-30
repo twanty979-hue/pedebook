@@ -358,6 +358,11 @@ export default function EbookViewer({
   const atFirst = currentPage <= 0;
   const atLast  = isMobile ? currentPage >= numPages - 1 : currentPage >= numPages - 2;
 
+  const isFrontCover = !isMobile && currentPage === 0;
+  const isBackCover = !isMobile && currentPage === numPages - 1 && numPages % 2 === 0;
+  const stageWidth = pageSize ? ((isFrontCover || isBackCover) ? pageSize.width : pageSize.width * 2) : 0;
+  const innerOffsetX = (pageSize && isFrontCover) ? -pageSize.width : 0;
+
   if (!isClient) return null;
 
   return (
@@ -413,9 +418,11 @@ export default function EbookViewer({
         transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
         {/* First */}
-        <TBtn onClick={goFirst} disabled={atFirst} title="หน้าแรก">
-          <IconFirst />
-        </TBtn>
+        {!isMobile && (
+          <TBtn onClick={goFirst} disabled={atFirst} title="หน้าแรก">
+            <IconFirst />
+          </TBtn>
+        )}
         {/* Prev */}
         <TBtn onClick={goPrev} disabled={atFirst} title="หน้าก่อนหน้า">
           <IconPrev />
@@ -446,44 +453,58 @@ export default function EbookViewer({
           <IconNext />
         </TBtn>
         {/* Last */}
-        <TBtn onClick={goLast} disabled={atLast} title="หน้าสุดท้าย">
-          <IconLast />
-        </TBtn>
+        {!isMobile && (
+          <TBtn onClick={goLast} disabled={atLast} title="หน้าสุดท้าย">
+            <IconLast />
+          </TBtn>
+        )}
 
-        <Divider />
+        {!isMobile && <Divider />}
 
         {/* Zoom Out */}
-        <TBtn onClick={zoomOut} disabled={zoom <= 0.4} title="ย่อ">
-          <IconZoomOut />
-        </TBtn>
+        {!isMobile && (
+          <TBtn onClick={zoomOut} disabled={zoom <= 0.4} title="ย่อ">
+            <IconZoomOut />
+          </TBtn>
+        )}
 
         {/* Zoom label */}
-        <div style={{
-          color: 'rgba(255,255,255,0.5)',
-          fontSize: 11,
-          minWidth: 38,
-          textAlign: 'center',
-          fontVariantNumeric: 'tabular-nums',
-        }}>
-          {Math.round(zoom * 100)}%
-        </div>
+        {!isMobile && (
+          <div style={{
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: 11,
+            minWidth: 38,
+            textAlign: 'center',
+            fontVariantNumeric: 'tabular-nums',
+          }}>
+            {Math.round(zoom * 100)}%
+          </div>
+        )}
 
         {/* Zoom In */}
-        <TBtn onClick={zoomIn} disabled={zoom >= 2.0} title="ขยาย">
-          <IconZoomIn />
-        </TBtn>
+        {!isMobile && (
+          <TBtn onClick={zoomIn} disabled={zoom >= 2.0} title="ขยาย">
+            <IconZoomIn />
+          </TBtn>
+        )}
 
-        <Divider />
+        {!isMobile && <Divider />}
 
         {/* Fullscreen */}
-        <TBtn onClick={toggleFullscreen} title={isFullscreen ? 'ออกจากเต็มจอ' : 'เต็มจอ'}>
-          {isFullscreen ? <IconExit /> : <IconFull />}
-        </TBtn>
+        {!isMobile && (
+          <TBtn onClick={toggleFullscreen} title={isFullscreen ? 'ออกจากเต็มจอ' : 'เต็มจอ'}>
+            {isFullscreen ? <IconExit /> : <IconFull />}
+          </TBtn>
+        )}
 
         {/* Float Toggle */}
-        <TBtn onClick={() => setIsFloating(!isFloating)} active={isFloating} title={isFloating ? 'ปิดสมุดลอย' : 'เปิดสมุดลอย'}>
-          <IconFloat />
-        </TBtn>
+        {!isMobile && (
+          <TBtn onClick={() => setIsFloating(!isFloating)} active={isFloating} title={isFloating ? 'ปิดสมุดลอย' : 'เปิดสมุดลอย'}>
+            <IconFloat />
+          </TBtn>
+        )}
+
+        {isMobile && <Divider />}
 
         {/* Download */}
         <TBtn onClick={handleDownload} title="ดาวน์โหลด PDF">
@@ -510,18 +531,10 @@ export default function EbookViewer({
             /* ── Outer: transform (cover-shift + zoom) + nav button anchor ── */
             <div style={{
               position: 'relative',
-              transform: `
-                ${
-                  (!isMobile && currentPage === 0)
-                    ? `translateX(-${pageSize.width / 2}px)`
-                    : (!isMobile && currentPage === numPages - 1 && numPages % 2 === 0)
-                      ? `translateX(${pageSize.width / 2}px)`
-                      : 'translateX(0px)'
-                }
-                scale(${zoom})
-              `,
+              width: isMobile ? pageSize.width : stageWidth,
+              transform: `scale(${zoom})`,
               transformOrigin: 'center center',
-              transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+              transition: 'width 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
             }}>
               <style dangerouslySetInnerHTML={{
                 __html: `
@@ -565,13 +578,13 @@ export default function EbookViewer({
                 {/* ── Clip box: กัน flip-animation overflow ออกนอก book ── */}
                 <div style={{
                   overflow: 'hidden',
-                  width:  isMobile ? pageSize.width : pageSize.width * 2,
+                  width:  isMobile ? pageSize.width : stageWidth,
                   height: pageSize.height,
                   position: 'relative',
                   boxShadow: isFloating 
                     ? '0 45px 100px rgba(0,0,0,0.7), 0 15px 35px rgba(0,0,0,0.3)' 
                     : '0 30px 80px rgba(0,0,0,0.65)',
-                  transition: 'box-shadow 0.5s ease-in-out',
+                  transition: 'width 0.6s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.5s ease-in-out',
                 }}>
                 {/* @ts-ignore */}
                 <HTMLFlipBook
@@ -594,7 +607,11 @@ export default function EbookViewer({
                     setCurrentPage(e.data);
                     playFlipSound();
                   }}
-                  style={{ display: 'block' }}
+                  style={{ 
+                    display: 'block',
+                    transform: `translateX(${innerOffsetX}px)`,
+                    transition: 'transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)',
+                  }}
                 >
                   <BookPage key={1} pageNumber={1} width={pageSize.width} height={pageSize.height} onRenderSuccess={onCoverRenderSuccess} />
                   {Array.from({ length: numPages - 1 }, (_, i) => (

@@ -85,7 +85,7 @@ export function generateOrganizationJsonLd(url: string) {
     '@id': `${url}#organization`,
     name: SEO_CONFIG.siteName,
     url: url,
-    logo: absoluteUrl('/logo.png'),
+    logo: absoluteUrl('/pedebook-logo-lockup.png'),
   };
 }
 
@@ -134,5 +134,37 @@ export function generateFAQJsonLd(url: string, faqs: Array<{ question: string; a
         text: faq.answer,
       },
     })),
+  };
+}
+
+export function generateDigitalDocumentJsonLd({
+  url,
+  title,
+  description,
+  image,
+  dateModified,
+}: {
+  url: string;
+  title: string;
+  description: string;
+  image: string;
+  dateModified?: string;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'DigitalDocument',
+    '@id': `${url}#document`,
+    name: title,
+    description,
+    url,
+    image,
+    encodingFormat: 'application/pdf',
+    isAccessibleForFree: true,
+    ...(dateModified ? { dateModified } : {}),
+    publisher: {
+      '@type': 'Organization',
+      name: SEO_CONFIG.siteName,
+      url: SEO_CONFIG.siteUrl,
+    },
   };
 }

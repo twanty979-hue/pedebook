@@ -28,22 +28,19 @@ export default function NavbarClient() {
 
   return (
     <nav className="relative z-10 flex w-full items-center justify-between px-4 py-6 sm:px-8 lg:px-12">
-      <Link href="/" className="flex items-center gap-2.5">
+      <Link
+        href="/"
+        aria-label="Pedebook — หน้าแรก"
+        className="flex h-14 w-14 items-center justify-center rounded-[20px] shadow-[0_8px_20px_rgba(36,49,41,0.08)] transition hover:-translate-y-0.5 sm:h-16 sm:w-16"
+      >
         <Image
-          src="/logo.png"
-          alt="Pedebook Logo"
-          width={40}
-          height={40}
-          className="rounded-xl object-contain shadow-sm"
+          src="/pedebook-icon.png"
+          alt="Pedebook"
+          width={181}
+          height={181}
+          priority
+          className="h-full w-full rounded-[20px] object-contain"
         />
-        <div className="flex flex-col">
-          <span className="text-lg font-bold tracking-tight text-[#17221c] leading-tight">
-            Pedebook
-          </span>
-          <span className="text-[10px] font-semibold text-[#9a7257] tracking-wide leading-none">
-            Digital Flipbook Platform
-          </span>
-        </div>
       </Link>
 
       <div className="flex items-center gap-4">

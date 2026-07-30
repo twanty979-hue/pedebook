@@ -38,6 +38,11 @@ interface CatalogItem {
   bgType?: string;
   bgValue?: string;
   isFloating?: boolean;
+  displayTitle?: string;
+  seoDescription?: string;
+  isPublic?: boolean;
+  allowIndexing?: boolean;
+  updatedAt?: string;
 }
 
 function formatSize(bytes: number) {
@@ -74,6 +79,9 @@ export default function DashboardPage() {
   const [editBgType, setEditBgType] = useState('gradient');
   const [editBgValue, setEditBgValue] = useState('auto');
   const [editIsFloating, setEditIsFloating] = useState(false);
+  const [editDescription, setEditDescription] = useState('');
+  const [editIsPublic, setEditIsPublic] = useState(true);
+  const [editAllowIndexing, setEditAllowIndexing] = useState(false);
   const [bgUploading, setBgUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -87,6 +95,9 @@ export default function DashboardPage() {
       setEditBgType(editModal.bgType || 'gradient');
       setEditBgValue(editModal.bgValue || 'auto');
       setEditIsFloating(editModal.isFloating ?? false);
+      setEditDescription(editModal.seoDescription || '');
+      setEditIsPublic(editModal.isPublic !== false);
+      setEditAllowIndexing(editModal.allowIndexing === true);
     }
   }, [editModal]);
 
@@ -174,10 +185,15 @@ export default function DashboardPage() {
       const docRef = doc(db, 'catalogs', editModal.id);
       await updateDoc(docRef, {
         fileName: editName,
+        displayTitle: editName.trim() || editModal.fileName,
+        seoDescription: editDescription.trim() || `อ่าน ${editName.trim() || editModal.fileName} ออนไลน์แบบ Flipbook แชร์ลิงก์และ QR Code ได้ทันที`,
+        isPublic: true,
+        allowIndexing: true,
         bgType: editBgType,
         bgValue: editBgValue,
         isFloating: editIsFloating,
         lastModified: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
 
       setEditModal(null);
@@ -229,6 +245,11 @@ export default function DashboardPage() {
         lastModified: new Date().toISOString(),
         bgType: 'gradient',
         bgValue: 'auto',
+        displayTitle: file.name.replace(/\.pdf$/i, ''),
+        seoDescription: `อ่าน ${file.name.replace(/\.pdf$/i, '')} ออนไลน์แบบ Flipbook แชร์ลิงก์และ QR Code ได้ทันที`,
+        isPublic: true,
+        allowIndexing: false,
+        updatedAt: new Date().toISOString(),
       });
 
       setUploadResult({ slug });
@@ -276,6 +297,7 @@ export default function DashboardPage() {
         r2Key: data.key,
         size: newFile.size,
         lastModified: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
 
       fetchCatalogs(user.uid);
@@ -357,7 +379,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <a href="/" className="flex items-center gap-2.5 group">
             <img
-              src="/logo.png"
+              src="/pedebook-icon.png"
               alt="Pedebook Logo"
               className="h-9 w-9 rounded-xl object-contain shadow-md transition-transform group-hover:scale-105"
             />
@@ -829,14 +851,16 @@ export default function DashboardPage() {
             <div className="space-y-4">
               {/* ชื่อหนังสือ */}
               <div>
-                <label className="block text-xs font-bold text-[#17221c] mb-1.5">ชื่อแค็ตตาล็อก</label>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#e2dfd5] focus:outline-none focus:border-[#243129] text-xs font-sans bg-[#fbfaf8]"
-                />
+                <label className="block text-xs font-bold text-[#17221c] mb-1.5">ชื่อแค็ตตาล็อก (อ้างอิงตามชื่อไฟล์ PDF)</label>
+                <div className="w-full px-4 py-2.5 rounded-xl border border-[#e2dfd5] text-xs font-sans bg-[#f5f4f0] text-[#6e746f] select-none flex items-center justify-between">
+                  <span>{editName}</span>
+                  <svg className="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
               </div>
+
+
 
               {/* เลือกธีมพื้นหลัง */}
               <div>
@@ -940,24 +964,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* อัปโหลดรูปภาพพื้นหลังของตนเอง */}
-              <div>
-                <label className="block text-xs font-bold text-[#17221c] mb-1.5">หรือ อัปโหลดรูปพื้นหลังเอง (.jpg / .png)</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleCustomBgUpload}
-                    className="text-xs text-[#6e746f] file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#243129]/10 file:text-[#243129] hover:file:bg-[#243129]/20 file:cursor-pointer"
-                  />
-                  {bgUploading && <span className="text-[10px] text-[#6e746f] animate-pulse">กำลังอัปโหลด...</span>}
-                </div>
-                {editBgType === 'custom' && editBgValue && (
-                  <p className="text-[10px] text-emerald-600 font-bold mt-1.5 truncate">
-                    ✓ เลือกใช้รูปภาพสำเร็จ: {editBgValue}
-                  </p>
-                )}
-              </div>
+
 
               {/* ตั้งค่าสมุดลอย (Floating Book) */}
               <div className="flex items-center justify-between py-3 border-t border-[#e2dfd5]/40 mt-3">
@@ -975,6 +982,8 @@ export default function DashboardPage() {
                   <div className="w-9 h-5 bg-neutral-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#243129]"></div>
                 </label>
               </div>
+
+
 
               {/* ปุ่มบันทึก */}
               <div className="pt-2">

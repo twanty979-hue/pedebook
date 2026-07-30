@@ -108,7 +108,7 @@ export default function LoginPage() {
         <div className="mb-6 flex flex-col items-center justify-center gap-2">
           <a href="/" className="flex items-center gap-2.5">
             <img
-              src="/logo.png"
+              src="/pedebook-icon.png"
               alt="Pedebook Logo"
               className="h-10 w-10 rounded-xl object-contain shadow-sm"
             />

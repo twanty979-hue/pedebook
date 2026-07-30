@@ -71,6 +71,23 @@ const BookPage = forwardRef<HTMLDivElement, BookPageProps>(
           className="h-full w-full object-cover"
         />
 
+        {/* ลายกระดาษบาง ๆ เพื่อให้หน้าตัวอย่างดูเหมือนหนังสือจริง โดยไม่บังเนื้อหา */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-35 mix-blend-multiply"
+          style={{
+            backgroundImage: [
+              'repeating-linear-gradient(to bottom, transparent 0, transparent 30px, rgba(154,114,87,0.12) 31px, transparent 32px)',
+              'radial-gradient(rgba(36,49,41,0.08) 0.7px, transparent 0.8px)',
+            ].join(', '),
+            backgroundSize: '100% 32px, 12px 12px',
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-5 rounded-lg border border-[#9a7257]/20"
+        />
+
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-black/30 to-transparent pb-4 pt-12">
           <span className="rounded-full bg-white/90 px-3 py-1 text-[10px] font-bold tracking-widest text-[#243129] shadow-sm">
             {pageNumber}
