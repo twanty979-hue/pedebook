@@ -45,6 +45,19 @@ interface CatalogItem {
   updatedAt?: string;
 }
 
+function createCatalogSlug(fileName: string): string {
+  const base = fileName
+    .replace(/\.pdf$/i, '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || 'catalog';
+
+  return `${base}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
 function formatSize(bytes: number) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -228,11 +241,7 @@ export default function DashboardPage() {
         return;
       }
 
-      const slug = `${user.uid}-${Date.now()}-${file.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '')}`;
+      const slug = createCatalogSlug(file.name);
 
       const catalogsRef = collection(db, 'catalogs');
       await addDoc(catalogsRef, {

@@ -6,9 +6,33 @@ import Link from 'next/link';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth } from '../src/lib/firebase';
 
-export default function NavbarClient() {
+type NavbarClientProps = {
+  locale?: 'th' | 'en';
+};
+
+export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const isEnglish = locale === 'en';
+  const copy = isEnglish
+    ? {
+        homeLabel: 'Pedebook — Home',
+        account: 'Account',
+        signOut: 'Sign out',
+        signIn: 'Sign in',
+        start: 'Create a flipbook',
+        languageLabel: 'ภาษาไทย',
+        languageHref: '/',
+      }
+    : {
+        homeLabel: 'Pedebook — หน้าแรก',
+        account: 'ผู้ใช้งาน',
+        signOut: 'ออกจากระบบ',
+        signIn: 'เข้าสู่ระบบ',
+        start: 'เริ่มสร้างแคตตาล็อก',
+        languageLabel: 'English',
+        languageHref: '/en',
+      };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -29,8 +53,8 @@ export default function NavbarClient() {
   return (
     <nav className="relative z-10 flex w-full items-center justify-between px-4 py-6 sm:px-8 lg:px-12">
       <Link
-        href="/"
-        aria-label="Pedebook — หน้าแรก"
+        href={isEnglish ? '/en' : '/'}
+        aria-label={copy.homeLabel}
         className="flex h-14 w-14 items-center justify-center rounded-[20px] shadow-[0_8px_20px_rgba(36,49,41,0.08)] transition hover:-translate-y-0.5 sm:h-16 sm:w-16"
       >
         <Image
@@ -67,7 +91,7 @@ export default function NavbarClient() {
               )}
               <div className="hidden flex-col text-left sm:flex">
                 <span className="text-xs font-bold leading-tight text-[#17221c]">
-                  {user.displayName || 'ผู้ใช้งาน'}
+                  {user.displayName || copy.account}
                 </span>
                 <span className="text-[10px] leading-tight text-[#6e746f]">
                   {user.email}
@@ -79,7 +103,7 @@ export default function NavbarClient() {
               onClick={handleSignOut}
               className="rounded-full border border-[#d9d7cd] px-4 py-1.5 text-xs font-bold text-[#755a47] hover:bg-[#243129] hover:text-[#e8dcc7] hover:border-[#243129] transition-all cursor-pointer"
             >
-              ออกจากระบบ
+              {copy.signOut}
             </button>
           </div>
         ) : (
@@ -88,14 +112,22 @@ export default function NavbarClient() {
               href="/login"
               className="hidden text-sm font-semibold text-[#755a47] transition hover:text-[#243129] sm:block"
             >
-              เข้าสู่ระบบ
+              {copy.signIn}
+            </Link>
+
+            <Link
+              href={copy.languageHref}
+              hrefLang={isEnglish ? 'th' : 'en'}
+              className="text-sm font-semibold text-[#755a47] transition hover:text-[#243129]"
+            >
+              {copy.languageLabel}
             </Link>
 
             <Link
               href="/login"
               className="rounded-full bg-[#243129] px-6 py-2.5 text-sm font-bold text-[#e8dcc7] shadow-[0_4px_12px_rgba(36,49,41,0.2)] transition hover:bg-[#314238]"
             >
-              เริ่มสร้างแคตตาล็อก
+              {copy.start}
             </Link>
           </div>
         )}

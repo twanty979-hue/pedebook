@@ -18,6 +18,11 @@ import {
 export const metadata: Metadata = {
   alternates: {
     canonical: absoluteUrl('/'),
+    languages: {
+      th: absoluteUrl('/'),
+      en: absoluteUrl('/en'),
+      'x-default': absoluteUrl('/'),
+    },
   },
   robots: {
     index: true,
@@ -37,6 +42,7 @@ export const metadata: Metadata = {
     url: absoluteUrl('/'),
     siteName: SEO_CONFIG.siteName,
     locale: "th_TH",
+    alternateLocale: ["en_US"],
   },
   twitter: {
     card: "summary_large_image",
