@@ -5,6 +5,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import HTMLFlipBook from 'react-pageflip';
+import { usePageAnalytics } from '../src/hooks/usePageAnalytics';
+import UnblockableAdOverlay from './UnblockableAdOverlay';
 
 // ── Toolbar Icons ──────────────────────────────────────────────────────────────
 const IconFirst   = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" width={15} height={15}><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>;
@@ -83,11 +85,17 @@ export default function EbookViewer({
   bgType = 'gradient',
   bgValue = 'auto',
   isFloating: initialIsFloating = false,
+  catalogId,
+  slug,
+  adEnabled = false,
 }: {
   pdfUrl: string;
   bgType?: string;
   bgValue?: string;
   isFloating?: boolean;
+  catalogId?: string;
+  slug?: string;
+  adEnabled?: boolean;
 }) {
   const [numPages, setNumPages]         = useState(0);
   const [currentPage, setCurrentPage]   = useState(0);
@@ -99,6 +107,13 @@ export default function EbookViewer({
   const [isFloating, setIsFloating]     = useState(initialIsFloating);
   const pageRatioRef                    = useRef<number | null>(null); // เก็บ ratio ไว้ recalc
   const [customBgStyle, setCustomBgStyle] = useState<any>(null);
+
+  // ระบบเก็บสถิติเปิดอ่านแยกรายหน้าแบบเรียลไทม์ (Page Stay Duration Analytics)
+  usePageAnalytics({
+    catalogId: catalogId || slug || 'demo',
+    currentPage: currentPage + 1,
+    enabled: isClient && numPages > 0,
+  });
 
   const fileConfig = useMemo(() => ({
     url: pdfUrl,
@@ -675,6 +690,9 @@ export default function EbookViewer({
         <span style={{ color: '#d4af37' }}>✨</span>
         <span>สร้างสมุดแบบนี้ฟรี 👉 <strong>Pedebook.com</strong></span>
       </a>
+
+      {/* Unblockable Ad Overlay for over-quota free books */}
+      {adEnabled && <UnblockableAdOverlay />}
     </div>
   );
 }

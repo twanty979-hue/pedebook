@@ -1,5 +1,7 @@
+export type PlanId = 'free' | 'pro' | 'ultra' | 'business';
+
 export interface PlanConfig {
-  id: 'free' | 'starter' | 'business';
+  id: PlanId;
   name: string;
   nameTh: string;
   tagline: string;
@@ -9,118 +11,162 @@ export interface PlanConfig {
   storageLabel: string;
   maxCatalogs: number; // -1 for unlimited
   maxFileSizeMb: number;
+  maxTeamMembers: number;
   hasWatermark: boolean;
+  adsOnOverQuota: boolean; // ถ้าใช้เกิน 100 MB สำหรับแพลนฟรี จะเปิดแสดงโฆษณาในเล่มสมุด
+  hasPageAnalytics: boolean;
+  hasHeatmapAnalytics: boolean;
   canPasswordProtect: boolean;
   canDownloadPdf: boolean;
   canCustomLogo: boolean;
-  canLeadForm: boolean;
+  canTeamCollab: boolean;
   features: string[];
   popular?: boolean;
 }
 
-export const PLANS: Record<'free' | 'starter' | 'business', PlanConfig> = {
+export const PLANS: Record<PlanId, PlanConfig> = {
   free: {
     id: 'free',
     name: 'Free Starter',
-    nameTh: 'แพ็กเกจฟรี (ใช้งานได้เต็มรูปแบบ)',
-    tagline: 'ใช้งานฟรี ไม่จำกัดจำนวนเล่ม พร้อมสร้างยอดขายได้ทันที',
+    nameTh: 'แพ็กเกจ Free (เริ่มต้นฟรี)',
+    tagline: 'เหมาะสำหรับผู้เริ่มต้น ทดลองสร้างแค็ตตาล็อกออนไลน์',
     priceMonthly: 0,
     priceYearly: 0,
-    storageMb: -1, // ไม่จำกัด
-    storageLabel: 'ไม่จำกัด (Unlimited)',
-    maxCatalogs: -1, // ไม่จำกัด
-    maxFileSizeMb: 300, // 300 MB
-    hasWatermark: false,
-    canPasswordProtect: true,
+    storageMb: 100, // 100 MB โควตาฟรี
+    storageLabel: '100 MB (อัปโหลดเกินได้ มีโฆษณา)',
+    maxCatalogs: -1, // อัปโหลดได้ต่อเนื่อง
+    maxFileSizeMb: 100,
+    maxTeamMembers: 1,
+    hasWatermark: true,
+    adsOnOverQuota: true, // หากเกิน 100 MB จะติดโฆษณาแบบบล็อกไม่ได้
+    hasPageAnalytics: true, // ดูสถิติหน้าเบื้องต้นได้
+    hasHeatmapAnalytics: false,
+    canPasswordProtect: false,
     canDownloadPdf: true,
-    canCustomLogo: true,
-    canLeadForm: true,
+    canCustomLogo: false,
+    canTeamCollab: false,
     features: [
-      'อัปโหลดแค็ตตาล็อกได้ไม่จำกัดจำนวนเล่ม (Unlimited)',
-      'ขนาดไฟล์สูงสุด 300 MB / เล่ม พื้นที่จัดเก็บบนคลาวด์ไม่จำกัด',
-      'แปลงเป็น 3D Flipbook เปิดอ่านออนไลน์เสมือนจริง',
+      'พื้นที่โควตาฟรี 100 MB (สามารถอัปเกินได้)',
+      'หากอัปโหลดเกิน 100 MB ระบบจะแสดงโฆษณาในเล่มสมุด',
+      'แปลงไฟล์ PDF เป็น 3D Flipbook เปิดอ่านออนไลน์',
       'สร้าง QR Code และแชร์ลิงก์ส่งทาง LINE / Social ได้ทันที',
       'รองรับการเปิดอ่านบนมือถือ แท็บเล็ต และคอมพิวเตอร์',
-      'ปรับแต่งสีพื้นหลัง แสงเงา 3D และข้อมูล SEO ได้อิสระ',
+      'ดูสถิติการเปิดอ่านเบื้องต้น',
     ],
   },
-  starter: {
-    id: 'starter',
+  pro: {
+    id: 'pro',
     name: 'Pro Trader',
-    nameTh: 'แพ็กเกจ Pro (ยอดนิยม)',
-    tagline: 'เหมาะสำหรับร้านค้าออนไลน์ SME ตัวแทนจำหน่าย และฟรีแลนซ์',
-    priceMonthly: 149,
-    priceYearly: 1490, // แถม 2 เดือน
-    storageMb: -1,
-    storageLabel: 'ไม่จำกัด (Unlimited)',
+    nameTh: 'แพ็กเกจ Pro (สุดคุ้ม 49.-)',
+    tagline: 'สำหรับร้านค้าออนไลน์ SME และฟรีแลนซ์ที่ต้องการความมืออาชีพ',
+    priceMonthly: 49,
+    priceYearly: 490, // แถม 2 เดือน
+    storageMb: 5000, // 5 GB
+    storageLabel: '5 GB',
     maxCatalogs: -1,
-    maxFileSizeMb: 300,
+    maxFileSizeMb: 250,
+    maxTeamMembers: 1,
     hasWatermark: false,
+    adsOnOverQuota: false,
+    hasPageAnalytics: true,
+    hasHeatmapAnalytics: true,
     canPasswordProtect: true,
     canDownloadPdf: true,
-    canCustomLogo: true,
-    canLeadForm: true,
+    canCustomLogo: false,
+    canTeamCollab: false,
     popular: true,
     features: [
-      'อัปโหลดแค็ตตาล็อกได้ไม่จำกัดจำนวนเล่ม (Unlimited)',
-      'ขนาดไฟล์สูงสุด 300 MB / เล่ม (พื้นที่จัดเก็บไม่จำกัด)',
-      'ปลดล็อกลายน้ำ (ไม่มีเครดิต Pedebook)',
+      'พื้นที่จัดเก็บบนคลาวด์ขนาดใหญ่ 5 GB',
+      'ไม่มีโฆษณา (Ad-Free 100%)',
+      'ปลดล็อกลายน้ำ Pedebook ออกจากเล่มสมุด',
+      'ระบบเก็บสถิติเปิดอ่านแต่ละหน้า (หน้าไหนคนอ่านนานที่สุด)',
       'ระบบตั้งรหัสผ่าน (Password Protection) ล็อกราคาส่ง/ข้อมูลเฉพาะกลุ่ม',
       'เปิด/ปิด ปุ่มดาวน์โหลดไฟล์ PDF ต้นฉบับได้',
       'ปรับแต่งสีพื้นหลัง แสงเงา 3D และหน้าปกได้อิสระ',
-      'ดูสถิติยอดคนเปิดอ่านและอุปกรณ์ของผู้เข้าชม',
       'ความเร็ว CDN สูงสุด รองรับคนเปิดอ่านพร้อมกันจำนวนมาก',
+    ],
+  },
+  ultra: {
+    id: 'ultra',
+    name: 'Ultra Creator',
+    nameTh: 'แพ็กเกจ Ultra (ยอดนิยม 199.-)',
+    tagline: 'สำหรับแบรนด์ที่เน้นภาพลักษณ์ระดับพรีเมียม และต้องการวิเคราะห์พฤติกรรมลูกค้าเชิงลึก',
+    priceMonthly: 199,
+    priceYearly: 1990,
+    storageMb: 50000, // 50 GB
+    storageLabel: '50 GB',
+    maxCatalogs: -1,
+    maxFileSizeMb: 500,
+    maxTeamMembers: 2,
+    hasWatermark: false,
+    adsOnOverQuota: false,
+    hasPageAnalytics: true,
+    hasHeatmapAnalytics: true,
+    canPasswordProtect: true,
+    canDownloadPdf: true,
+    canCustomLogo: true,
+    canTeamCollab: false,
+    features: [
+      'พื้นที่จัดเก็บขนาดใหญ่พิเศษ 50 GB (มาตรฐานสากล SaaS)',
+      'ทุกฟังก์ชันของแพ็กเกจ Pro',
+      'ใส่โลโก้แบรนด์ของลูกค้าเอง (Custom Branding) ที่มุมเครื่องเล่น',
+      'แดชบอร์ด Heatmap วิเคราะห์เวลาที่ลูกค้าเปิดค้างในแต่ละหน้าแบบละเอียด',
+      'ปุ่มสั่งซื้อด่วน (Call-to-Action) เชื่อมต่อ LINE OA หรือ Shopee',
+      'ระบบ Lead Form (เก็บชื่อ-เบอร์โทรลูกค้า ก่อนเปิดอ่าน)',
+      'Priority CDN ความเร็วสูงสุดระดับ Global Edge',
     ],
   },
   business: {
     id: 'business',
     name: 'Business Enterprise',
-    nameTh: 'แพ็กเกจ Business (สำหรับองค์กร)',
-    tagline: 'สำหรับแบรนด์ บริษัท โรงงาน และร้านอาหารที่มีสินค้าจำนวนมาก',
-    priceMonthly: 390,
-    priceYearly: 3900,
-    storageMb: -1,
-    storageLabel: 'ไม่จำกัด (Unlimited)',
+    nameTh: 'แพ็กเกจ Business (ทีม & องค์กร 599.-)',
+    tagline: 'สำหรับองค์กร บริษัท โรงงาน และทีมงานที่ต้องการทำงานร่วมกัน',
+    priceMonthly: 599,
+    priceYearly: 5990,
+    storageMb: 300000, // 300 GB
+    storageLabel: '300 GB',
     maxCatalogs: -1,
-    maxFileSizeMb: 500,
+    maxFileSizeMb: 1000, // 1 GB ต่อเล่ม
+    maxTeamMembers: 10, // เชิญคนเข้าทีมได้สูงสุด 10 คน
     hasWatermark: false,
+    adsOnOverQuota: false,
+    hasPageAnalytics: true,
+    hasHeatmapAnalytics: true,
     canPasswordProtect: true,
     canDownloadPdf: true,
     canCustomLogo: true,
-    canLeadForm: true,
+    canTeamCollab: true,
     features: [
-      'อัปโหลดแค็ตตาล็อกได้ไม่จำกัดจำนวนเล่ม (Unlimited)',
-      'ขนาดไฟล์สูงสุด 500 MB / เล่ม (พื้นที่จัดเก็บไม่จำกัด)',
-      'ทุกฟังก์ชันของแพ็กเกจ Pro',
-      'ใส่โลโก้แบรนด์ของลูกค้าเอง (Custom Branding) ที่มุมเครื่องเล่น',
-      'ปุ่มสั่งซื้อด่วน (Call-to-Action) เชื่อมต่อ LINE OA หรือ Shopee',
-      'ระบบ Lead Form (เก็บชื่อ-เบอร์โทรลูกค้า ก่อนเปิดอ่าน)',
-      'Priority CDN ความเร็วสูงสุดระดับ Global Edge',
+      'พื้นที่จัดเก็บระดับองค์กร 300 GB',
+      'ระบบเชิญทีมงาน (Team Collaboration) สูงสุด 10 คนต่อทีม',
+      'กำหนดสิทธิ์สมาชิกในทีมได้ (Owner, Admin, Editor, Viewer)',
+      'ทุกฟังก์ชันของแพ็กเกจ Ultra',
+      'ระบบสถิติเชิงลึก Export ข้อมูลรายงานการอ่าน (CSV/Excel)',
+      'ความเร็ว CDN สูงสุด พร้อม Dedicated Server Gateway',
       'ทีมงานดูแลระบบและให้คำปรึกษาด่วนพิเศษผ่าน LINE ส่วนตัว',
     ],
   },
 };
 
 /**
- * Helper to check whether an upload violates plan constraints.
- * ปลดล็อกให้ทุกแพลนใช้งานได้ปกติ ไม่จำกัดจำนวนเล่ม เพื่อเน้นเพิ่มยอดผู้ใช้งาน
+ * ตรวจสอบความถูกต้องของไฟล์
  */
 export function validateUploadLimits(
   _currentCatalogCount: number,
   _currentTotalSizeBytes: number,
   newFileSizeBytes: number,
-  _plan: PlanConfig = PLANS.free
+  plan: PlanConfig = PLANS.free
 ): { allowed: boolean; reason?: string } {
   const newFileSizeMb = newFileSizeBytes / (1024 * 1024);
 
-  // ป้องกันเฉพาะกรณีไฟล์ใหญ่เกิน 500 MB ซึ่งอาจทำให้เบราว์เซอร์รับไม่ไหว
-  if (newFileSizeMb > 500) {
+  // ตรวจสอบขนาดไฟล์เดี่ยวตามเพดานของแพลน
+  if (newFileSizeMb > plan.maxFileSizeMb) {
     return {
       allowed: false,
-      reason: `ขนาดไฟล์ (${newFileSizeMb.toFixed(1)} MB) ใหญ่เกิน 500 MB ครับ แนะนำให้ขนาดไฟล์ไม่เกิน 500 MB เพื่อให้เปิดอ่านบนมือถือได้อย่างรวดเร็วครับ`,
+      reason: `ขนาดไฟล์ (${newFileSizeMb.toFixed(1)} MB) เกินขนาดสูงสุดที่แพ็กเกจ ${plan.nameTh} อนุญาต (${plan.maxFileSizeMb} MB/เล่ม) ครับ`,
     };
   }
 
-  // อนุญาตทุกกรณี ไม่จำกัดจำนวนเล่มและพื้นที่จัดเก็บ
+  // แพลนฟรีสามารถอัปโหลดเกิน 100 MB ได้ แต่ระบบจะติดโฆษณาให้อัตโนมัติ
   return { allowed: true };
 }

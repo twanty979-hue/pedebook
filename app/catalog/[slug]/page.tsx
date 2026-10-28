@@ -92,6 +92,7 @@ export default async function CatalogPage({ params }: CatalogPageProps) {
         bgType={catalog.bgType}
         bgValue={catalog.bgValue}
         isFloating={catalog.isFloating}
+        adEnabled={Boolean(catalog.adEnabled)}
       />
     </>
   );

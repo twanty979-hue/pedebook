@@ -19,6 +19,7 @@ export interface CatalogRecord {
   bgType?: string;
   bgValue?: string;
   isFloating?: boolean;
+  adEnabled?: boolean;
 }
 
 export const getCatalogBySlug = cache(async (slug: string): Promise<CatalogRecord | null> => {
