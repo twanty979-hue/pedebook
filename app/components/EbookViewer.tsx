@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import HTMLFlipBook from 'react-pageflip';
 
@@ -18,7 +18,9 @@ const IconExit    = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentCo
 const IconDown    = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" width={15} height={15}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
 const IconFloat   = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" width={15} height={15}><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>;
 
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
+  pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+}
 
 const BookPage = React.forwardRef<HTMLDivElement, { pageNumber: number; width: number; height: number; onRenderSuccess?: () => void }>(
   ({ pageNumber, width, height, onRenderSuccess }, ref) => (
@@ -97,6 +99,12 @@ export default function EbookViewer({
   const [isFloating, setIsFloating]     = useState(initialIsFloating);
   const pageRatioRef                    = useRef<number | null>(null); // เก็บ ratio ไว้ recalc
   const [customBgStyle, setCustomBgStyle] = useState<any>(null);
+
+  const fileConfig = useMemo(() => ({
+    url: pdfUrl,
+    disableAutoFetch: true,
+    disableStream: true,
+  }), [pdfUrl]);
 
   useEffect(() => {
     setIsFloating(initialIsFloating);
@@ -276,11 +284,11 @@ export default function EbookViewer({
     return () => document.removeEventListener('fullscreenchange', handler);
   }, [calculateSize]);
 
-  const onDocumentLoad = useCallback(async ({ numPages: n }: { numPages: number }) => {
+  const onDocumentLoad = useCallback(async (pdf: any) => {
+    const n = pdf?.numPages || 0;
     setNumPages(n);
     if (pageSize) return;
     try {
-      const pdf   = await pdfjs.getDocument(pdfUrl).promise;
       const page  = await pdf.getPage(1);
       const vp    = page.getViewport({ scale: 1 });
       const ratio = vp.height / vp.width;
@@ -291,7 +299,7 @@ export default function EbookViewer({
       const w = 420;
       setPageSize({ width: w, height: Math.round(w * 1.414) });
     }
-  }, [pdfUrl, pageSize, calculateSize]);
+  }, [pageSize, calculateSize]);
 
   useEffect(() => {
     if (!pageSize) return;
@@ -522,9 +530,9 @@ export default function EbookViewer({
         overflow: 'hidden',
       }}>
         <Document
-          file={pdfUrl}
+          file={fileConfig}
           onLoadSuccess={onDocumentLoad}
-          loading={<div style={{ color: '#aaa', fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', padding: 80 }}>Loading...</div>}
+          loading={<div style={{ color: '#aaa', fontSize: 13, letterSpacing: 4, textTransform: 'uppercase', padding: 80 }}>กำลังโหลดหน้ากระดาษ...</div>}
           error={<div style={{ color: '#f87171', fontSize: 14, padding: 60 }}>ไม่สามารถโหลด PDF ได้ครับ</div>}
         >
           {numPages > 0 && pageSize && (
@@ -636,6 +644,37 @@ export default function EbookViewer({
           )}
         </Document>
       </div>
+
+      {/* Subtle viral watermark for organic growth */}
+      <a
+        href="https://www.pedebook.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          position: 'fixed',
+          bottom: isMobile ? 12 : 20,
+          right: isMobile ? 12 : 24,
+          zIndex: 99,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          background: 'rgba(23, 34, 28, 0.78)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          borderRadius: 24,
+          padding: '6px 14px',
+          color: '#e8dcc7',
+          fontSize: isMobile ? 11 : 12,
+          fontWeight: 600,
+          textDecoration: 'none',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+          transition: 'all 0.2s ease',
+        }}
+        title="สร้างแค็ตตาล็อกออนไลน์แบบ 3D พลิกหน้าฟรี"
+      >
+        <span style={{ color: '#d4af37' }}>✨</span>
+        <span>สร้างสมุดแบบนี้ฟรี 👉 <strong>Pedebook.com</strong></span>
+      </a>
     </div>
   );
 }

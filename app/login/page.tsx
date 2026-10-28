@@ -10,6 +10,7 @@ import {
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "../src/lib/firebase";
+import { syncUserProfile } from "../src/lib/user-tracking";
 
 type ActiveMode = "login" | "register" | "forgot";
 
@@ -31,13 +32,19 @@ export default function LoginPage() {
 
     try {
       if (mode === "login") {
-        await signInWithEmailAndPassword(auth, email, password);
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        if (cred.user) {
+          syncUserProfile(cred.user);
+        }
         router.push("/");
       } else if (mode === "register") {
         if (password !== confirmPassword) {
           throw new Error("passwords-dont-match");
         }
-        await createUserWithEmailAndPassword(auth, email, password);
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        if (cred.user) {
+          syncUserProfile(cred.user);
+        }
         setSuccess("สมัครสมาชิกสำเร็จแล้ว! ระบบกำลังนำคุณไปที่หน้าหลัก...");
         setTimeout(() => {
           router.push("/");
@@ -75,7 +82,10 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
 
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      if (result.user) {
+        syncUserProfile(result.user);
+      }
       setSuccess("เข้าสู่ระบบด้วย Google สำเร็จแล้ว!");
       setTimeout(() => {
         router.push("/");

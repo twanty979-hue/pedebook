@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import {
@@ -17,6 +18,8 @@ import {
 } from 'firebase/firestore';
 import { QRCodeCanvas } from 'qrcode.react';
 import { auth, db } from '../src/lib/firebase';
+import { syncUserProfile } from '../src/lib/user-tracking';
+import { PLANS, validateUploadLimits } from '../src/lib/plans';
 
 const BookCover = dynamic(() => import('../components/BookCover'), {
   ssr: false,
@@ -43,6 +46,10 @@ interface CatalogItem {
   isPublic?: boolean;
   allowIndexing?: boolean;
   updatedAt?: string;
+  docType?: string;
+  userEmail?: string;
+  userName?: string;
+  userPhoto?: string;
 }
 
 function createCatalogSlug(fileName: string): string {
@@ -79,6 +86,9 @@ export default function DashboardPage() {
 
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatusText, setUploadStatusText] = useState('');
+  const [quotaModal, setQuotaModal] = useState<string | null>(null);
   const [uploadResult, setUploadResult] = useState<{ slug: string } | null>(null);
   const [catalogs, setCatalogs] = useState<CatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,6 +132,7 @@ export default function DashboardPage() {
       } else {
         setUser(currentUser);
         setAuthLoading(false);
+        syncUserProfile(currentUser);
       }
     });
     return () => unsubscribe();
@@ -138,10 +149,12 @@ export default function DashboardPage() {
         orderBy('lastModified', 'desc')
       );
       const snapshot = await getDocs(q);
-      const items: CatalogItem[] = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<CatalogItem, 'id'>),
-      }));
+      const items: CatalogItem[] = snapshot.docs
+        .map((d) => ({
+          id: d.id,
+          ...(d.data() as Omit<CatalogItem, 'id'>),
+        }))
+        .filter((item) => (!item.docType || item.docType === 'catalog') && item.fileName);
       setCatalogs(items);
     } catch (err) {
       console.error('Error fetching catalogs:', err);
@@ -219,37 +232,132 @@ export default function DashboardPage() {
     }
   };
 
+  // อัปโหลดไฟล์ตรงเข้า Cloudflare R2 ผ่าน Presigned PUT URL
+  const uploadFileDirectly = async (
+    targetFile: File,
+    userId: string,
+    onProgress: (p: number, text: string) => void
+  ): Promise<{ url: string; key: string; fileName: string }> => {
+    onProgress(5, 'กำลังขอลิงก์อัปโหลดความเร็วสูง...');
+
+    const presignRes = await fetch('/api/upload/presign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: targetFile.name,
+        fileSize: targetFile.size,
+        contentType: targetFile.type || 'application/pdf',
+        userId,
+      }),
+    });
+
+    if (!presignRes.ok) {
+      const errData = await presignRes.json().catch(() => ({}));
+      throw new Error(errData.error || 'ไม่สามารถสร้างลิงก์อัปโหลดได้ครับ');
+    }
+
+    const presignData = await presignRes.json();
+    onProgress(15, 'กำลังเชื่อมต่อคลาวด์ R2...');
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', presignData.presignedUrl);
+        xhr.setRequestHeader('Content-Type', targetFile.type || 'application/pdf');
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.min(95, Math.round((event.loaded / event.total) * 80) + 15);
+            onProgress(percent, `กำลังส่งไฟล์เข้าสู่คลาวด์ ${percent}%...`);
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error(`Cloudflare R2 ตอบกลับรหัส ${xhr.status}`));
+          }
+        };
+
+        xhr.onerror = () => {
+          reject(new Error('การเชื่อมต่ออัปโหลดตรงล้มเหลว (CORS/Network)'));
+        };
+
+        xhr.send(targetFile);
+      });
+
+      onProgress(100, 'อัปโหลดเสร็จสิ้น!');
+      return {
+        url: presignData.publicUrl,
+        key: presignData.key,
+        fileName: presignData.fileName,
+      };
+    } catch (directErr) {
+      console.warn('Direct upload failed, checking fallback:', directErr);
+      // Fallback ถ้าไฟล์ขนาด <= 4.5 MB ให้ลองส่งผ่าน /api/upload
+      if (targetFile.size <= 4.5 * 1024 * 1024) {
+        onProgress(50, 'กำลังส่งไฟล์สำรอง...');
+        const formData = new FormData();
+        formData.append('file', targetFile);
+        formData.append('userId', userId);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!data.success) {
+          throw new Error(data.error || 'การส่งไฟล์สำรองไม่สำเร็จ');
+        }
+        onProgress(100, 'อัปโหลดสำเร็จ!');
+        return data;
+      }
+
+      throw new Error(
+        'อัปโหลดไฟล์ขนาดใหญ่ไม่สำเร็จ: กรุณาเปิดใช้งาน CORS บน Cloudflare R2 หรือติดต่อแอดมินเพื่อตรวจสอบครับ'
+      );
+    }
+  };
+
   // 3. ระบบอัปโหลด R2 + บันทึก Firestore
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !user) return;
+
+    // ตรวจสอบโควตาแพ็กเกจฟรี (10 เล่ม, เล่มละ 10 MB, รวม 100 MB)
+    const totalBytes = catalogs.reduce((acc, c) => acc + (c.size || 0), 0);
+    const limitCheck = validateUploadLimits(catalogs.length, totalBytes, file.size, PLANS.free);
+    if (!limitCheck.allowed) {
+      setQuotaModal(limitCheck.reason || 'ขนาดไฟล์หรือจำนวนเล่มเกินขีดจำกัดของแพ็กเกจฟรีครับ');
+      return;
+    }
+
     setUploading(true);
+    setUploadProgress(0);
+    setUploadStatusText('กำลังเตรียมข้อมูล...');
     setUploadResult(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('userId', user.uid);
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
+      const uploadRes = await uploadFileDirectly(file, user.uid, (p, text) => {
+        setUploadProgress(p);
+        setUploadStatusText(text);
       });
-      const data = await res.json();
-      if (!data.success) {
-        alert('เกิดข้อผิดพลาดในการอัปโหลด: ' + data.error);
-        return;
-      }
 
+      setUploadStatusText('กำลังบันทึกข้อมูลสมุด...');
       const slug = createCatalogSlug(file.name);
 
       const catalogsRef = collection(db, 'catalogs');
       await addDoc(catalogsRef, {
         userId: user.uid,
+        userEmail: user.email || '',
+        userName: user.displayName || user.email?.split('@')[0] || 'User',
+        userPhoto: user.photoURL || '',
+        docType: 'catalog',
         slug,
         fileName: file.name,
-        pdfUrl: data.url,
-        r2Key: data.key,
+        pdfUrl: uploadRes.url,
+        r2Key: uploadRes.key,
         size: file.size,
         lastModified: new Date().toISOString(),
         bgType: 'gradient',
@@ -265,33 +373,32 @@ export default function DashboardPage() {
       setFile(null);
       setUploadModalOpen(false);
       fetchCatalogs(user.uid);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      alert('ระบบอัปโหลดมีปัญหาครับ');
+      const msg = err instanceof Error ? err.message : 'ระบบอัปโหลดมีปัญหาครับ';
+      alert(msg);
     } finally {
       setUploading(false);
+      setUploadProgress(0);
+      setUploadStatusText('');
     }
   };
 
   // 4. ระบบเปลี่ยนไฟล์ PDF (ลบ R2 เก่า + อัปโหลดใหม่ + อัปเดต Firestore)
   const handleReplace = async (item: CatalogItem, newFile: File) => {
     if (!user) return;
+
+    if (newFile.size > PLANS.free.maxFileSizeMb * 1024 * 1024) {
+      setQuotaModal(
+        `ไฟล์ใหม่มีขนาด ${(newFile.size / (1024 * 1024)).toFixed(1)} MB เกินขีดจำกัด ${PLANS.free.maxFileSizeMb} MB ของแพ็กเกจฟรีครับ`
+      );
+      return;
+    }
+
     setReplacing(item.id);
 
     try {
-      const formData = new FormData();
-      formData.append('file', newFile);
-      formData.append('userId', user.uid);
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (!data.success) {
-        alert('เปลี่ยนไฟล์ไม่สำเร็จ: ' + data.error);
-        return;
-      }
+      const uploadRes = await uploadFileDirectly(newFile, user.uid, () => {});
 
       await fetch('/api/delete-file', {
         method: 'POST',
@@ -302,17 +409,18 @@ export default function DashboardPage() {
       const docRef = doc(db, 'catalogs', item.id);
       await updateDoc(docRef, {
         fileName: newFile.name,
-        pdfUrl: data.url,
-        r2Key: data.key,
+        pdfUrl: uploadRes.url,
+        r2Key: uploadRes.key,
         size: newFile.size,
         lastModified: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
 
       fetchCatalogs(user.uid);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      alert('ระบบเปลี่ยนไฟล์มีปัญหาครับ');
+      const msg = err instanceof Error ? err.message : 'ระบบเปลี่ยนไฟล์มีปัญหาครับ';
+      alert(msg);
     } finally {
       setReplacing(null);
     }
@@ -422,6 +530,16 @@ export default function DashboardPage() {
                   <span className="text-[10px] text-[#6e746f] leading-none">{user.email}</span>
                 </div>
               </div>
+              <a
+                href="/admin"
+                className="flex items-center gap-1.5 rounded-full border border-[#243129]/20 bg-white/80 px-3.5 py-1.5 text-xs font-bold text-[#243129] shadow-xs hover:bg-[#243129] hover:text-[#e8dcc7] transition-all cursor-pointer"
+                title="เข้าสู่ระบบจัดการแอดมิน"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span>หน้าแอดมิน</span>
+              </a>
               <button
                 onClick={handleLogout}
                 className="rounded-full border border-[#d9d7cd] px-4 py-1.5 text-xs font-bold text-[#755a47] hover:bg-[#243129] hover:text-[#e8dcc7] hover:border-[#243129] transition-all cursor-pointer"
@@ -468,7 +586,8 @@ export default function DashboardPage() {
           <div className="bg-white/70 border border-[#e2dfd5] rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-[#755a47]">แค็ตตาล็อกทั้งหมด</p>
-              <h3 className="text-3xl font-bold mt-1 text-[#17221c]">{catalogs.length} เล่ม</h3>
+              <h3 className="text-3xl font-bold mt-1 text-[#17221c]">{catalogs.length} / 10 เล่ม</h3>
+              <p className="text-[10px] text-[#6e746f] mt-1 font-semibold">แพ็กเกจฟรี (สูงสุด 10 เล่ม)</p>
             </div>
             <div className="text-[#243129] bg-[#243129]/5 p-3 rounded-xl">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -477,11 +596,17 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="bg-white/70 border border-[#e2dfd5] rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition">
-            <div>
+            <div className="w-full mr-4">
               <p className="text-xs font-bold uppercase tracking-wider text-[#755a47]">พื้นที่จัดเก็บรวม</p>
-              <h3 className="text-3xl font-bold mt-1 text-[#17221c]">{formatSize(totalSize)}</h3>
+              <h3 className="text-3xl font-bold mt-1 text-[#17221c]">{formatSize(totalSize)} / 100 MB</h3>
+              <div className="w-full bg-[#e8e4db] h-1.5 rounded-full mt-2 overflow-hidden">
+                <div
+                  className="bg-[#9a7257] h-full rounded-full transition-all duration-300"
+                  style={{ width: `${Math.min(100, Math.round((totalSize / (100 * 1024 * 1024)) * 100))}%` }}
+                />
+              </div>
             </div>
-            <div className="text-[#9a7257] bg-[#9a7257]/5 p-3 rounded-xl">
+            <div className="text-[#9a7257] bg-[#9a7257]/5 p-3 rounded-xl shrink-0">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
               </svg>
@@ -489,13 +614,22 @@ export default function DashboardPage() {
           </div>
           <div className="bg-white/70 border border-[#e2dfd5] rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-[#755a47]">สิทธิ์การเข้าถึงระบบ</p>
-              <h3 className="text-lg font-bold mt-2.5 text-[#166534] flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                SaaS Multi-tenant
-              </h3>
+              <p className="text-xs font-bold uppercase tracking-wider text-[#755a47]">สถานะแพ็กเกจ</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-lg font-bold text-[#17221c]">Free Starter</span>
+                <span className="text-[10px] font-bold bg-[#eef3f0] text-emerald-700 px-2 py-0.5 rounded-full">ฟรี</span>
+              </div>
+              <Link
+                href="/pricing"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#243129] hover:underline mt-1 cursor-pointer"
+              >
+                <span>⚡ ดูราคาและอัปเกรดเป็น Pro</span>
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
             </div>
-            <div className="text-emerald-600 bg-emerald-50 p-3 rounded-xl">
+            <div className="text-emerald-600 bg-emerald-50 p-3 rounded-xl shrink-0">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
               </svg>
@@ -723,14 +857,60 @@ export default function DashboardPage() {
                 />
               </div>
 
+              {uploading && (
+                <div className="p-3.5 rounded-xl bg-[#f5f3ee] border border-[#e2dfd5] space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#17221c]">
+                    <span>{uploadStatusText || 'กำลังอัปโหลด...'}</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-[#d9d5cb] h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-[#243129] h-full rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={!file || uploading}
-                className="w-full bg-[#243129] text-[#e8dcc7] py-3 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md hover:bg-[#314238] active:scale-[0.98] transition disabled:opacity-50 disabled:pointer-events-none"
+                className="w-full bg-[#243129] text-[#e8dcc7] py-3 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md hover:bg-[#314238] active:scale-[0.98] transition disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
               >
-                {uploading ? 'กำลังส่งขึ้นคลาวด์แฟร์...' : 'เริ่มกระบวนการอัปโหลด'}
+                {uploading ? (uploadStatusText || 'กำลังส่งขึ้นคลาวด์...') : 'เริ่มกระบวนการอัปโหลด'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Quota Exceeded Modal ── */}
+      {quotaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setQuotaModal(null)}>
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full border border-[#e2dfd5] shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-[#17221c] mb-2">เกินขีดจำกัดแพ็กเกจฟรี</h3>
+            <p className="text-xs text-[#6e746f] leading-relaxed mb-6">
+              {quotaModal}
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <Link
+                href="/pricing"
+                className="w-full py-3.5 rounded-full bg-[#243129] text-[#e8dcc7] font-bold text-xs text-center shadow-md hover:bg-[#314238] transition cursor-pointer"
+              >
+                ⚡ ดูตารางแพ็กเกจและอัปเกรดเป็น Pro
+              </Link>
+              <button
+                onClick={() => setQuotaModal(null)}
+                className="w-full py-2.5 rounded-full border border-[#d9d7cd] text-[#6e746f] font-semibold text-xs text-center hover:bg-neutral-50 transition cursor-pointer"
+              >
+                เข้าใจแล้ว ปิดหน้าต่าง
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -64,10 +64,13 @@ export async function GET(req: NextRequest) {
     const buffer = Buffer.from(arrayBytes);
 
     return new NextResponse(buffer, {
+      status: 200,
       headers: {
         'Content-Type': 'application/pdf',
+        'Content-Length': buffer.length.toString(),
+        'Accept-Ranges': 'bytes',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Cache-Control': 'public, max-age=3600',
       },
     });
   } catch (err: any) {

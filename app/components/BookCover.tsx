@@ -1,9 +1,12 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
 // ตั้งค่าพาร์ทของ Worker เพื่อให้ PDF.js ทำงานในพื้นหลัง
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
+  pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+}
 
 interface BookCoverProps {
   slug: string;
@@ -12,9 +15,15 @@ interface BookCoverProps {
 }
 
 export default function BookCover({ slug, fileName, width = 157 }: BookCoverProps) {
+  const fileConfig = useMemo(() => ({
+    url: `/api/pdf-proxy?slug=${slug}`,
+    disableAutoFetch: true,
+    disableStream: true,
+  }), [slug]);
+
   return (
     <Document
-      file={`/api/pdf-proxy?slug=${slug}`}
+      file={fileConfig}
       loading={
         <div className="flex flex-col items-center justify-center h-full w-full bg-[#243129] text-[#e8dcc7] p-2 text-center select-none">
           <span className="text-[9px] font-bold tracking-widest animate-pulse">โหลดปก...</span>
