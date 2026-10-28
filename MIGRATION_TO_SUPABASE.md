@@ -168,6 +168,46 @@ erDiagram
 ### 5.4 จัดการแค็ตตาล็อก (Catalogs CRUD)
 - **Endpoint:** `GET /api/v1/catalogs?userId={id}` หรือ `GET /api/v1/catalogs?slug={slug}`
 - **Endpoint:** `POST /api/v1/catalogs` (สร้างแค็ตตาล็อกใหม่)
+- **Endpoint:** `GET /api/v1/catalogs/[id]` (ดึงรายละเอียดแค็ตตาล็อกรายเล่ม พร้อมสถิติหน้า)
+- **Endpoint:** `PATCH /api/v1/catalogs/[id]` (แก้ไขชื่อ, ธีมพื้นหลัง, SEO, และการตั้งค่า)
+- **Endpoint:** `DELETE /api/v1/catalogs/[id]` (ลบแค็ตตาล็อก และลบไฟล์ PDF บน R2 อัตโนมัติ)
+
+### 5.5 ขอ Presigned URL อัปโหลดตรงเข้า R2 (สำหรับ Mobile App & Web)
+- **Endpoint:** `POST /api/v1/upload/presign`
+- **Payload:**
+  ```json
+  {
+    "fileName": "summer-catalog-2026.pdf",
+    "fileSize": 15420000,
+    "contentType": "application/pdf",
+    "userId": "user-uuid"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "presignedUrl": "https://...",
+    "publicUrl": "https://cdn.pedebook.com/ebook/user-uuid/...",
+    "key": "ebook/user-uuid/...",
+    "expiresInSeconds": 3600
+  }
+  ```
+- **การทำงานของ Mobile App:** แอปร้องขอ Presigned URL จาก Endpoint นี้ จากนั้นส่งไฟล์แบบ `PUT` ตรงเข้า Cloudflare R2 ได้ทันที ทำให้แอปทำงานได้เร็วมาก ไม่ต้องส่งไฟล์ผ่านเว็บเซิร์ฟเวอร์
+
+### 5.6 ตรวจสอบแพ็กเกจ โควตา และสถานะโฆษณา (User Quota & Plan Status)
+- **Endpoint:** `GET /api/v1/user/plan?userId={id}`
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "plan": { "id": "free", "storageMb": 100 },
+    "storageUsedBytes": 115343360,
+    "storageUsedMb": 110.0,
+    "isOverQuota": true,
+    "adsActive": true
+  }
+  ```
 
 ---
 
