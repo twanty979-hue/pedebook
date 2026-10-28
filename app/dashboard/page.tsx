@@ -325,11 +325,11 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!file || !user) return;
 
-    // ตรวจสอบโควตาแพ็กเกจฟรี (10 เล่ม, เล่มละ 10 MB, รวม 100 MB)
+    // ตรวจสอบความถูกต้องของไฟล์ (ไม่จำกัดโควตา ทุกแพลนใช้งานได้ปกติ)
     const totalBytes = catalogs.reduce((acc, c) => acc + (c.size || 0), 0);
     const limitCheck = validateUploadLimits(catalogs.length, totalBytes, file.size, PLANS.free);
     if (!limitCheck.allowed) {
-      setQuotaModal(limitCheck.reason || 'ขนาดไฟล์หรือจำนวนเล่มเกินขีดจำกัดของแพ็กเกจฟรีครับ');
+      setQuotaModal(limitCheck.reason || 'ขนาดไฟล์ใหญ่เกินไปครับ');
       return;
     }
 
@@ -388,9 +388,9 @@ export default function DashboardPage() {
   const handleReplace = async (item: CatalogItem, newFile: File) => {
     if (!user) return;
 
-    if (newFile.size > PLANS.free.maxFileSizeMb * 1024 * 1024) {
+    if (newFile.size > 500 * 1024 * 1024) {
       setQuotaModal(
-        `ไฟล์ใหม่มีขนาด ${(newFile.size / (1024 * 1024)).toFixed(1)} MB เกินขีดจำกัด ${PLANS.free.maxFileSizeMb} MB ของแพ็กเกจฟรีครับ`
+        `ไฟล์ใหม่มีขนาด ${(newFile.size / (1024 * 1024)).toFixed(1)} MB ซึ่งใหญ่เกิน 500 MB ครับ แนะนำบีบอัดไฟล์ก่อนอัปโหลดครับ`
       );
       return;
     }
@@ -586,8 +586,8 @@ export default function DashboardPage() {
           <div className="bg-white/70 border border-[#e2dfd5] rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-[#755a47]">แค็ตตาล็อกทั้งหมด</p>
-              <h3 className="text-3xl font-bold mt-1 text-[#17221c]">{catalogs.length} / 10 เล่ม</h3>
-              <p className="text-[10px] text-[#6e746f] mt-1 font-semibold">แพ็กเกจฟรี (สูงสุด 10 เล่ม)</p>
+              <h3 className="text-3xl font-bold mt-1 text-[#17221c]">{catalogs.length} เล่ม</h3>
+              <p className="text-[10px] text-emerald-700 mt-1 font-semibold">สร้างได้ไม่จำกัดจำนวนเล่ม (Unlimited)</p>
             </div>
             <div className="text-[#243129] bg-[#243129]/5 p-3 rounded-xl">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -598,13 +598,8 @@ export default function DashboardPage() {
           <div className="bg-white/70 border border-[#e2dfd5] rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition">
             <div className="w-full mr-4">
               <p className="text-xs font-bold uppercase tracking-wider text-[#755a47]">พื้นที่จัดเก็บรวม</p>
-              <h3 className="text-3xl font-bold mt-1 text-[#17221c]">{formatSize(totalSize)} / 100 MB</h3>
-              <div className="w-full bg-[#e8e4db] h-1.5 rounded-full mt-2 overflow-hidden">
-                <div
-                  className="bg-[#9a7257] h-full rounded-full transition-all duration-300"
-                  style={{ width: `${Math.min(100, Math.round((totalSize / (100 * 1024 * 1024)) * 100))}%` }}
-                />
-              </div>
+              <h3 className="text-3xl font-bold mt-1 text-[#17221c]">{formatSize(totalSize)}</h3>
+              <p className="text-[10px] text-emerald-700 mt-1 font-semibold">คลาวด์ความเร็วสูง CDN (ไม่จำกัด)</p>
             </div>
             <div className="text-[#9a7257] bg-[#9a7257]/5 p-3 rounded-xl shrink-0">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -614,20 +609,12 @@ export default function DashboardPage() {
           </div>
           <div className="bg-white/70 border border-[#e2dfd5] rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-[#755a47]">สถานะแพ็กเกจ</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-[#755a47]">สิทธิ์การใช้งาน</p>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-lg font-bold text-[#17221c]">Free Starter</span>
-                <span className="text-[10px] font-bold bg-[#eef3f0] text-emerald-700 px-2 py-0.5 rounded-full">ฟรี</span>
+                <span className="text-lg font-bold text-[#17221c]">Full Access</span>
+                <span className="text-[10px] font-bold bg-[#eef3f0] text-emerald-700 px-2 py-0.5 rounded-full">เปิดใช้เต็มระบบ</span>
               </div>
-              <Link
-                href="/pricing"
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#243129] hover:underline mt-1 cursor-pointer"
-              >
-                <span>⚡ ดูราคาและอัปเกรดเป็น Pro</span>
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
+              <p className="text-[11px] text-[#6e746f] mt-1">ใช้งานได้ทุกฟีเจอร์ สร้างยอดขายได้ไม่จำกัด</p>
             </div>
             <div className="text-emerald-600 bg-emerald-50 p-3 rounded-xl shrink-0">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -893,20 +880,14 @@ export default function DashboardPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <h3 className="text-lg font-bold text-[#17221c] mb-2">เกินขีดจำกัดแพ็กเกจฟรี</h3>
+            <h3 className="text-lg font-bold text-[#17221c] mb-2">แจ้งเตือนไฟล์</h3>
             <p className="text-xs text-[#6e746f] leading-relaxed mb-6">
               {quotaModal}
             </p>
             <div className="flex flex-col gap-2.5">
-              <Link
-                href="/pricing"
-                className="w-full py-3.5 rounded-full bg-[#243129] text-[#e8dcc7] font-bold text-xs text-center shadow-md hover:bg-[#314238] transition cursor-pointer"
-              >
-                ⚡ ดูตารางแพ็กเกจและอัปเกรดเป็น Pro
-              </Link>
               <button
                 onClick={() => setQuotaModal(null)}
-                className="w-full py-2.5 rounded-full border border-[#d9d7cd] text-[#6e746f] font-semibold text-xs text-center hover:bg-neutral-50 transition cursor-pointer"
+                className="w-full py-2.5 rounded-full bg-[#243129] text-[#e8dcc7] font-semibold text-xs text-center hover:bg-[#314238] transition cursor-pointer"
               >
                 เข้าใจแล้ว ปิดหน้าต่าง
               </button>

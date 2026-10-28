@@ -28,7 +28,7 @@ export default function PricingPage() {
             เลือกแพ็กเกจที่ลงตัวกับธุรกิจของคุณ
           </h1>
           <p className="text-sm sm:text-base text-[#6e746f] leading-relaxed">
-            เริ่มต้นใช้งานได้ <span className="font-bold text-[#243129]">ฟรี 10 เล่ม</span> โดยไม่ต้องกรอกบัตรเครดิต หรืออัปเกรดเป็นแพลน Pro เพื่อปลดล็อกลายน้ำ ขยายไฟล์ใหญ่ และเพิ่มยอดขายให้ร้านของคุณ
+            เริ่มต้นใช้งานได้ <span className="font-bold text-[#243129]">ฟรี ไม่จำกัดจำนวนเล่ม</span> โดยไม่ต้องกรอกบัตรเครดิต สร้างยอดขายและแชร์แค็ตตาล็อกออนไลน์ให้ลูกค้าของคุณได้ทันที
           </p>
 
           {/* Billing Cycle Switcher */}
@@ -71,7 +71,7 @@ export default function PricingPage() {
                 Early-Bird Lifetime Deal — จ่ายครั้งเดียวจบ 1,990 บาท
               </h2>
               <p className="text-xs sm:text-sm text-[#e8dcc7]/80 mt-1 max-w-2xl leading-relaxed">
-                รับสิทธิ์ใช้งานฟังก์ชัน <strong className="text-white">Pro Trader ตลอดชีพ</strong> ไม่ต้องจ่ายรายเดือนอีกต่อไป รองรับ 30 เล่ม ไฟล์ใหญ่ 100 MB ไม่มีลายน้ำ และอัปเดตฟีเจอร์ใหม่ฟรีตลอดอายุการใช้งาน
+                รับสิทธิ์ใช้งานฟังก์ชัน <strong className="text-white">Pro Trader ตลอดชีพ</strong> ไม่ต้องจ่ายรายเดือนอีกต่อไป รองรับไฟล์ใหญ่ 300 MB พื้นที่จัดเก็บไม่จำกัด และอัปเดตฟีเจอร์ใหม่ฟรีตลอดอายุการใช้งาน
               </p>
             </div>
             <button
@@ -104,13 +104,13 @@ export default function PricingPage() {
                   <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>แค็ตตาล็อกสูงสุด 10 เล่ม</span>
+                  <span>ไม่จำกัดจำนวนเล่ม (Unlimited)</span>
                 </div>
                 <div className="flex items-center gap-2 font-bold text-[#243129]">
                   <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>ขนาดไฟล์สูงสุด 10 MB / เล่ม (รวม 100 MB)</span>
+                  <span>ขนาดไฟล์สูงสุด 300 MB / เล่ม</span>
                 </div>
                 {PLANS.free.features.slice(2).map((feature, i) => (
                   <div key={i} className="flex items-start gap-2 text-[#6e746f]">
@@ -250,19 +250,19 @@ export default function PricingPage() {
           <div className="space-y-4">
             <div className="bg-white rounded-2xl p-5 border border-[#e2dfd5]">
               <h4 className="text-sm font-bold text-[#17221c] mb-1">
-                แพลนฟรี 10 เล่ม ใช้งานได้นานแค่ไหน?
+                แพลนฟรี ใช้งานได้นานแค่ไหน?
               </h4>
               <p className="text-xs text-[#6e746f] leading-relaxed">
-                ใช้งานได้ตลอดชีพครับ สามารถอัปโหลดไฟล์ PDF ได้สูงสุด 10 เล่ม ขนาดไม่เกิน 10 MB ต่อเล่ม และแชร์ลิงก์หรือ QR Code ให้ลูกค้าเปิดอ่านได้ไม่จำกัดจำนวนครั้ง
+                ใช้งานได้ตลอดชีพครับ สามารถอัปโหลดไฟล์ PDF ได้ไม่จำกัดจำนวนเล่ม รองรับไฟล์ขนาดใหญ่สูงสุด 300 MB ต่อเล่ม และแชร์ลิงก์หรือ QR Code ให้ลูกค้าเปิดอ่านได้ไม่จำกัดจำนวนครั้ง
               </p>
             </div>
 
             <div className="bg-white rounded-2xl p-5 border border-[#e2dfd5]">
               <h4 className="text-sm font-bold text-[#17221c] mb-1">
-                ถ้าไฟล์ PDF มีขนาดเกิน 10 MB จะทำอย่างไร?
+                ถ้าไฟล์ PDF มีขนาดใหญ่ จะเปิดอ่านได้เร็วไหม?
               </h4>
               <p className="text-xs text-[#6e746f] leading-relaxed">
-                หากไฟล์งานของคุณมีความละเอียดสูง เช่น 15–50 MB ระบบจะแนะนำให้อัปเกรดเป็นแพ็กเกจ Pro (149 บ./เดือน) ซึ่งรองรับไฟล์ใหญ่ได้ถึง 100 MB และไม่มีลายน้ำติดในเล่มสมุดครับ
+                ระบบเชื่อมต่อกับ Cloudflare Edge CDN ทั่วโลก ทำให้ไม่ว่าไฟล์จะมีขนาดใหญ่แค่ไหน ลูกค้าที่กดเปิดผ่านมือถือก็สามารถเปิดพลิกอ่านได้อย่างลื่นไหล รวดเร็ว ไม่ต้องรอดาวน์โหลดทั้งเล่มครับ
               </p>
             </div>
 

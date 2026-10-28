@@ -22,26 +22,26 @@ export const PLANS: Record<'free' | 'starter' | 'business', PlanConfig> = {
   free: {
     id: 'free',
     name: 'Free Starter',
-    nameTh: 'แพ็กเกจฟรี (ทดลองใช้)',
-    tagline: 'เหมาะสำหรับผู้เริ่มต้น ทดลองสร้างแค็ตตาล็อกเล่มแรก',
+    nameTh: 'แพ็กเกจฟรี (ใช้งานได้เต็มรูปแบบ)',
+    tagline: 'ใช้งานฟรี ไม่จำกัดจำนวนเล่ม พร้อมสร้างยอดขายได้ทันที',
     priceMonthly: 0,
     priceYearly: 0,
-    storageMb: 100, // 100 MB
-    storageLabel: '100 MB',
-    maxCatalogs: 10, // 10 เล่ม
-    maxFileSizeMb: 10, // เล่มละ 10 MB
-    hasWatermark: true,
-    canPasswordProtect: false,
+    storageMb: -1, // ไม่จำกัด
+    storageLabel: 'ไม่จำกัด (Unlimited)',
+    maxCatalogs: -1, // ไม่จำกัด
+    maxFileSizeMb: 300, // 300 MB
+    hasWatermark: false,
+    canPasswordProtect: true,
     canDownloadPdf: true,
-    canCustomLogo: false,
-    canLeadForm: false,
+    canCustomLogo: true,
+    canLeadForm: true,
     features: [
-      'อัปโหลดแค็ตตาล็อกได้สูงสุด 10 เล่ม',
-      'ขนาดไฟล์สูงสุด 10 MB / เล่ม (พื้นที่รวม 100 MB)',
+      'อัปโหลดแค็ตตาล็อกได้ไม่จำกัดจำนวนเล่ม (Unlimited)',
+      'ขนาดไฟล์สูงสุด 300 MB / เล่ม พื้นที่จัดเก็บบนคลาวด์ไม่จำกัด',
       'แปลงเป็น 3D Flipbook เปิดอ่านออนไลน์เสมือนจริง',
       'สร้าง QR Code และแชร์ลิงก์ส่งทาง LINE / Social ได้ทันที',
       'รองรับการเปิดอ่านบนมือถือ แท็บเล็ต และคอมพิวเตอร์',
-      'มีเครดิต Pedebook ใต้เล่มสมุด',
+      'ปรับแต่งสีพื้นหลัง แสงเงา 3D และข้อมูล SEO ได้อิสระ',
     ],
   },
   starter: {
@@ -51,19 +51,19 @@ export const PLANS: Record<'free' | 'starter' | 'business', PlanConfig> = {
     tagline: 'เหมาะสำหรับร้านค้าออนไลน์ SME ตัวแทนจำหน่าย และฟรีแลนซ์',
     priceMonthly: 149,
     priceYearly: 1490, // แถม 2 เดือน
-    storageMb: 5000, // 5 GB
-    storageLabel: '5 GB',
-    maxCatalogs: 30, // 30 เล่ม
-    maxFileSizeMb: 100, // 100 MB / เล่ม
+    storageMb: -1,
+    storageLabel: 'ไม่จำกัด (Unlimited)',
+    maxCatalogs: -1,
+    maxFileSizeMb: 300,
     hasWatermark: false,
     canPasswordProtect: true,
     canDownloadPdf: true,
-    canCustomLogo: false,
-    canLeadForm: false,
+    canCustomLogo: true,
+    canLeadForm: true,
     popular: true,
     features: [
-      'อัปโหลดแค็ตตาล็อกได้สูงสุด 30 เล่ม',
-      'ขนาดไฟล์สูงสุด 100 MB / เล่ม (พื้นที่รวม 5 GB)',
+      'อัปโหลดแค็ตตาล็อกได้ไม่จำกัดจำนวนเล่ม (Unlimited)',
+      'ขนาดไฟล์สูงสุด 300 MB / เล่ม (พื้นที่จัดเก็บไม่จำกัด)',
       'ปลดล็อกลายน้ำ (ไม่มีเครดิต Pedebook)',
       'ระบบตั้งรหัสผ่าน (Password Protection) ล็อกราคาส่ง/ข้อมูลเฉพาะกลุ่ม',
       'เปิด/ปิด ปุ่มดาวน์โหลดไฟล์ PDF ต้นฉบับได้',
@@ -79,10 +79,10 @@ export const PLANS: Record<'free' | 'starter' | 'business', PlanConfig> = {
     tagline: 'สำหรับแบรนด์ บริษัท โรงงาน และร้านอาหารที่มีสินค้าจำนวนมาก',
     priceMonthly: 390,
     priceYearly: 3900,
-    storageMb: 25000, // 25 GB
-    storageLabel: '25 GB',
-    maxCatalogs: -1, // Unlimited
-    maxFileSizeMb: 250, // 250 MB / เล่ม
+    storageMb: -1,
+    storageLabel: 'ไม่จำกัด (Unlimited)',
+    maxCatalogs: -1,
+    maxFileSizeMb: 500,
     hasWatermark: false,
     canPasswordProtect: true,
     canDownloadPdf: true,
@@ -90,7 +90,7 @@ export const PLANS: Record<'free' | 'starter' | 'business', PlanConfig> = {
     canLeadForm: true,
     features: [
       'อัปโหลดแค็ตตาล็อกได้ไม่จำกัดจำนวนเล่ม (Unlimited)',
-      'ขนาดไฟล์สูงสุด 250 MB / เล่ม (พื้นที่รวม 25 GB)',
+      'ขนาดไฟล์สูงสุด 500 MB / เล่ม (พื้นที่จัดเก็บไม่จำกัด)',
       'ทุกฟังก์ชันของแพ็กเกจ Pro',
       'ใส่โลโก้แบรนด์ของลูกค้าเอง (Custom Branding) ที่มุมเครื่องเล่น',
       'ปุ่มสั่งซื้อด่วน (Call-to-Action) เชื่อมต่อ LINE OA หรือ Shopee',
@@ -103,39 +103,24 @@ export const PLANS: Record<'free' | 'starter' | 'business', PlanConfig> = {
 
 /**
  * Helper to check whether an upload violates plan constraints.
+ * ปลดล็อกให้ทุกแพลนใช้งานได้ปกติ ไม่จำกัดจำนวนเล่ม เพื่อเน้นเพิ่มยอดผู้ใช้งาน
  */
 export function validateUploadLimits(
-  currentCatalogCount: number,
-  currentTotalSizeBytes: number,
+  _currentCatalogCount: number,
+  _currentTotalSizeBytes: number,
   newFileSizeBytes: number,
-  plan: PlanConfig = PLANS.free
+  _plan: PlanConfig = PLANS.free
 ): { allowed: boolean; reason?: string } {
   const newFileSizeMb = newFileSizeBytes / (1024 * 1024);
-  const currentTotalMb = currentTotalSizeBytes / (1024 * 1024);
 
-  // 1. Check max file size
-  if (newFileSizeMb > plan.maxFileSizeMb) {
+  // ป้องกันเฉพาะกรณีไฟล์ใหญ่เกิน 500 MB ซึ่งอาจทำให้เบราว์เซอร์รับไม่ไหว
+  if (newFileSizeMb > 500) {
     return {
       allowed: false,
-      reason: `ขนาดไฟล์ (${newFileSizeMb.toFixed(1)} MB) เกินขีดจำกัดของ${plan.nameTh} ที่อนุญาตสูงสุด ${plan.maxFileSizeMb} MB ต่อเล่มครับ`,
+      reason: `ขนาดไฟล์ (${newFileSizeMb.toFixed(1)} MB) ใหญ่เกิน 500 MB ครับ แนะนำให้ขนาดไฟล์ไม่เกิน 500 MB เพื่อให้เปิดอ่านบนมือถือได้อย่างรวดเร็วครับ`,
     };
   }
 
-  // 2. Check catalog count limit
-  if (plan.maxCatalogs !== -1 && currentCatalogCount >= plan.maxCatalogs) {
-    return {
-      allowed: false,
-      reason: `จำนวนแค็ตตาล็อกครบขีดจำกัด ${plan.maxCatalogs} เล่มของ${plan.nameTh}แล้วครับ`,
-    };
-  }
-
-  // 3. Check total storage limit
-  if (currentTotalMb + newFileSizeMb > plan.storageMb) {
-    return {
-      allowed: false,
-      reason: `พื้นที่จัดเก็บรวมจะเกิน ${plan.storageLabel} ของ${plan.nameTh}ครับ (ใช้งานปัจจุบัน: ${currentTotalMb.toFixed(1)} MB)`,
-    };
-  }
-
+  // อนุญาตทุกกรณี ไม่จำกัดจำนวนเล่มและพื้นที่จัดเก็บ
   return { allowed: true };
 }
