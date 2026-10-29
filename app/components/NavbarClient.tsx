@@ -40,49 +40,75 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
 
   useEffect(() => {
     let isMounted = true;
-    if (isSupabaseConfigured()) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user && isMounted) {
-          const sbUser = {
-            uid: session.user.id,
-            email: session.user.email || null,
-            displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
-            photoURL: session.user.user_metadata?.avatar_url || null,
-            isAnonymous: false,
-          } as unknown as User;
-          setUser(sbUser);
-          setLoading(false);
+
+    async function checkAuth() {
+      // 1. ตรวจสอบ Supabase Session
+      if (isSupabaseConfigured()) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user && isMounted) {
+            const sbUser = {
+              uid: session.user.id,
+              email: session.user.email || null,
+              displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+              photoURL: session.user.user_metadata?.avatar_url || null,
+              isAnonymous: false,
+            } as unknown as User;
+            setUser(sbUser);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.warn('Supabase session check note:', e);
         }
+      }
+
+      // 2. ตรวจสอบ Firebase Auth
+      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        if (!isMounted) return;
+        if (currentUser) {
+          setUser(currentUser);
+          syncUserProfile(currentUser);
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
       });
 
-      supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user && isMounted) {
-          const sbUser = {
-            uid: session.user.id,
-            email: session.user.email || null,
-            displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
-            photoURL: session.user.user_metadata?.avatar_url || null,
-            isAnonymous: false,
-          } as unknown as User;
-          setUser(sbUser);
-          setLoading(false);
-        }
-      });
+      return unsubscribe;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser && isMounted) {
-        setUser(currentUser);
-        setLoading(false);
-        syncUserProfile(currentUser);
-      } else if (!isMounted) {
-        return;
-      }
+    let fbUnsub: (() => void) | undefined;
+    checkAuth().then((unsub) => {
+      fbUnsub = unsub;
     });
+
+    // ฟังการเปลี่ยนแปลงของ Supabase Auth
+    let sbSub: { unsubscribe: () => void } | undefined;
+    if (isSupabaseConfigured()) {
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!isMounted) return;
+        if (session?.user) {
+          const sbUser = {
+            uid: session.user.id,
+            email: session.user.email || null,
+            displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+            photoURL: session.user.user_metadata?.avatar_url || null,
+            isAnonymous: false,
+          } as unknown as User;
+          setUser(sbUser);
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
+      });
+      sbSub = data.subscription;
+    }
 
     return () => {
       isMounted = false;
-      unsubscribe();
+      if (fbUnsub) fbUnsub();
+      if (sbSub) sbSub.unsubscribe();
     };
   }, []);
 
@@ -181,6 +207,13 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
               className="hidden text-sm font-semibold text-[#755a47] transition hover:text-[#243129] sm:block"
             >
               {isEnglish ? 'Pricing' : 'ราคาและแพ็กเกจ'}
+            </Link>
+
+            <Link
+              href="/login"
+              className="text-sm font-semibold text-[#755a47] transition hover:text-[#243129]"
+            >
+              {copy.signIn}
             </Link>
 
             <Link
