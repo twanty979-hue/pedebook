@@ -97,10 +97,10 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
               )}
               <div className="hidden flex-col text-left sm:flex">
                 <span className="text-xs font-bold leading-tight text-[#17221c]">
-                  {user.displayName || copy.account}
+                  {user.displayName || (user.isAnonymous ? 'ผู้ใช้งานทั่วไป' : copy.account)}
                 </span>
                 <span className="text-[10px] leading-tight text-[#6e746f]">
-                  {user.email}
+                  {user.email || 'Guest Workspace'}
                 </span>
               </div>
             </Link>
@@ -123,12 +123,14 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
               <span>{copy.admin}</span>
             </Link>
             
-            <button
-              onClick={handleSignOut}
-              className="rounded-full border border-[#d9d7cd] px-4 py-1.5 text-xs font-bold text-[#755a47] hover:bg-[#243129] hover:text-[#e8dcc7] hover:border-[#243129] transition-all cursor-pointer"
-            >
-              {copy.signOut}
-            </button>
+            {!user.isAnonymous && (
+              <button
+                onClick={handleSignOut}
+                className="rounded-full border border-[#d9d7cd] px-4 py-1.5 text-xs font-bold text-[#755a47] hover:bg-[#243129] hover:text-[#e8dcc7] hover:border-[#243129] transition-all cursor-pointer"
+              >
+                {copy.signOut}
+              </button>
+            )}
           </div>
         ) : (
           <div className="flex items-center gap-4">
@@ -140,13 +142,6 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
             </Link>
 
             <Link
-              href="/login"
-              className="hidden text-sm font-semibold text-[#755a47] transition hover:text-[#243129] sm:block"
-            >
-              {copy.signIn}
-            </Link>
-
-            <Link
               href={copy.languageHref}
               hrefLang={isEnglish ? 'th' : 'en'}
               className="text-sm font-semibold text-[#755a47] transition hover:text-[#243129]"
@@ -155,7 +150,7 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
             </Link>
 
             <Link
-              href="/login"
+              href="/dashboard"
               className="rounded-full bg-[#243129] px-6 py-2.5 text-sm font-bold text-[#e8dcc7] shadow-[0_4px_12px_rgba(36,49,41,0.2)] transition hover:bg-[#314238]"
             >
               {copy.start}

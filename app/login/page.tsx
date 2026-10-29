@@ -172,6 +172,14 @@ export default function LoginPage() {
           <div className="mb-5">
             <button
               type="button"
+              onClick={() => router.push('/dashboard')}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#243129] px-4 py-3.5 text-sm font-bold text-[#e8dcc7] shadow-md transition-all hover:bg-[#314238] active:scale-[0.98] mb-3 cursor-pointer"
+            >
+              <span>🚀 เข้าใช้งานทันที (ไม่ต้องสมัครสมาชิก)</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleGoogleLogin}
               disabled={loading}
               className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#d9d7cd] bg-white px-4 py-3 text-sm font-semibold text-[#17221c] shadow-sm transition-all hover:bg-neutral-50 active:scale-[0.98] disabled:opacity-50"

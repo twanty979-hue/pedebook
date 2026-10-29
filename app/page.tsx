@@ -386,7 +386,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-8 flex justify-center">
             <Link
-              href="/login"
+              href="/dashboard"
               className="rounded-full bg-[#e8dcc7] px-8 py-3.5 text-sm font-bold text-[#243129] shadow-[0_4px_16px_rgba(232,220,199,0.2)] hover:bg-white active:scale-[0.98] transition-all cursor-pointer"
             >
               เริ่มสร้างแคตตาล็อก
@@ -403,7 +403,7 @@ export default function LandingPage() {
             <span>&copy; {new Date().getFullYear()} Pedebook. All rights reserved.</span>
           </div>
           <div className="flex gap-4">
-            <Link href="/login" className="hover:text-white transition">เข้าสู่ระบบ</Link>
+            <Link href="/dashboard" className="hover:text-white transition">เข้าสู่แดชบอร์ด</Link>
             <span className="text-neutral-700">|</span>
             <span className="text-neutral-500">Digital Flipbook & E-Catalog Generator</span>
           </div>

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import { onAuthStateChanged, signOut, signInAnonymously, User } from 'firebase/auth';
 import {
   collection,
   query,
@@ -51,6 +51,7 @@ interface CatalogItem {
   userEmail?: string;
   userName?: string;
   userPhoto?: string;
+  adEnabled?: boolean;
 }
 
 function createCatalogSlug(fileName: string): string {
@@ -126,11 +127,36 @@ export default function DashboardPage() {
     }
   }, [editModal]);
 
-  // 1. ตรวจสอบสิทธิ์และนำทาง
+  // 1. ตรวจสอบสิทธิ์หรือสร้าง Guest Session ทันที (ไม่ต้องสมัครสมาชิก)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
-        router.push('/login');
+        try {
+          const cred = await signInAnonymously(auth);
+          setUser(cred.user);
+          setAuthLoading(false);
+          syncUserProfile(cred.user);
+        } catch (err) {
+          console.warn('Anonymous auth unavailable, fallback to local guest session:', err);
+          let guestId = '';
+          if (typeof window !== 'undefined') {
+            guestId = localStorage.getItem('pedebook_guest_uid') || '';
+            if (!guestId) {
+              guestId = 'guest_' + crypto.randomUUID().slice(0, 12);
+              localStorage.setItem('pedebook_guest_uid', guestId);
+            }
+          }
+          const mockGuest = {
+            uid: guestId || 'guest_user',
+            email: null,
+            displayName: 'ผู้ใช้งานทั่วไป',
+            photoURL: null,
+            isAnonymous: true,
+          } as unknown as User;
+          setUser(mockGuest);
+          setAuthLoading(false);
+          fetchCatalogs(mockGuest.uid);
+        }
       } else {
         setUser(currentUser);
         setAuthLoading(false);
@@ -138,25 +164,69 @@ export default function DashboardPage() {
       }
     });
     return () => unsubscribe();
-  }, [router]);
+  }, []);
 
-  // 2. ดึงแค็ตตาล็อกแยกตามสิทธิ์ผู้ใช้จาก Firestore
+  // 2. ดึงแค็ตตาล็อกแยกตามสิทธิ์ผู้ใช้จาก Supabase REST API + Firestore
   const fetchCatalogs = async (userId: string) => {
     setLoading(true);
     try {
-      const catalogsRef = collection(db, 'catalogs');
-      const q = query(
-        catalogsRef,
-        where('userId', '==', userId),
-        orderBy('lastModified', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      const items: CatalogItem[] = snapshot.docs
-        .map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<CatalogItem, 'id'>),
-        }))
-        .filter((item) => (!item.docType || item.docType === 'catalog') && item.fileName);
+      const itemsMap = new Map<string, CatalogItem>();
+
+      // 1. ดึงจาก Supabase REST API (หลัก)
+      try {
+        const res = await fetch(`/api/v1/catalogs?userId=${encodeURIComponent(userId)}`);
+        const json = await res.json();
+        if (json.success && Array.isArray(json.catalogs)) {
+          json.catalogs.forEach((c: any) => {
+            itemsMap.set(c.slug, {
+              id: c.id,
+              slug: c.slug,
+              fileName: c.file_name,
+              pdfUrl: c.pdf_url,
+              r2Key: c.storage_key,
+              size: Number(c.file_size_bytes || 0),
+              lastModified: c.created_at,
+              bgType: c.bg_type,
+              bgValue: c.bg_value,
+              isFloating: c.is_floating,
+              displayTitle: c.title,
+              seoDescription: c.seo_description,
+              isPublic: c.is_public,
+              allowIndexing: c.allow_indexing,
+              updatedAt: c.updated_at,
+              adEnabled: c.ad_enabled,
+            });
+          });
+        }
+      } catch (sbErr) {
+        console.warn('Supabase fetch catalogs note:', sbErr);
+      }
+
+      // 2. ดึงจาก Firestore (สำหรับเล่มเดิมที่มีอยู่)
+      try {
+        const catalogsRef = collection(db, 'catalogs');
+        const q = query(
+          catalogsRef,
+          where('userId', '==', userId),
+          orderBy('lastModified', 'desc')
+        );
+        const snapshot = await getDocs(q);
+        snapshot.docs.forEach((d) => {
+          const data = d.data() as any;
+          if ((!data.docType || data.docType === 'catalog') && data.fileName && data.slug) {
+            if (!itemsMap.has(data.slug)) {
+              itemsMap.set(data.slug, {
+                id: d.id,
+                ...(data as Omit<CatalogItem, 'id'>),
+              });
+            }
+          }
+        });
+      } catch (fsErr) {
+        console.warn('Firestore fetch catalogs note:', fsErr);
+      }
+
+      const items = Array.from(itemsMap.values());
       setCatalogs(items);
     } catch (err) {
       console.error('Error fetching catalogs:', err);
@@ -210,19 +280,44 @@ export default function DashboardPage() {
     setSaving(true);
 
     try {
-      const docRef = doc(db, 'catalogs', editModal.id);
-      await updateDoc(docRef, {
-        fileName: editName,
-        displayTitle: editName.trim() || editModal.fileName,
-        seoDescription: editDescription.trim() || `อ่าน ${editName.trim() || editModal.fileName} ออนไลน์แบบ Flipbook แชร์ลิงก์และ QR Code ได้ทันที`,
-        isPublic: true,
-        allowIndexing: true,
-        bgType: editBgType,
-        bgValue: editBgValue,
-        isFloating: editIsFloating,
-        lastModified: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      // 1. อัปเดตใน Supabase
+      try {
+        await fetch(`/api/v1/catalogs/${editModal.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: editName.trim() || editModal.fileName,
+            fileName: editName,
+            seoDescription: editDescription.trim(),
+            bgType: editBgType,
+            bgValue: editBgValue,
+            isFloating: editIsFloating,
+            isPublic: true,
+            allowIndexing: true,
+          }),
+        });
+      } catch (sbErr) {
+        console.warn('Supabase update note:', sbErr);
+      }
+
+      // 2. อัปเดตใน Firestore (หากมี)
+      try {
+        const docRef = doc(db, 'catalogs', editModal.id);
+        await updateDoc(docRef, {
+          fileName: editName,
+          displayTitle: editName.trim() || editModal.fileName,
+          seoDescription: editDescription.trim() || `อ่าน ${editName.trim() || editModal.fileName} ออนไลน์แบบ Flipbook แชร์ลิงก์และ QR Code ได้ทันที`,
+          isPublic: true,
+          allowIndexing: true,
+          bgType: editBgType,
+          bgValue: editBgValue,
+          isFloating: editIsFloating,
+          lastModified: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (fsErr) {
+        console.warn('Firestore update note:', fsErr);
+      }
 
       setEditModal(null);
       fetchCatalogs(user.uid);
@@ -349,27 +444,57 @@ export default function DashboardPage() {
       setUploadStatusText('กำลังบันทึกข้อมูลสมุด...');
       const slug = createCatalogSlug(file.name);
 
-      const catalogsRef = collection(db, 'catalogs');
-      await addDoc(catalogsRef, {
-        userId: user.uid,
-        userEmail: user.email || '',
-        userName: user.displayName || user.email?.split('@')[0] || 'User',
-        userPhoto: user.photoURL || '',
-        docType: 'catalog',
-        slug,
-        fileName: file.name,
-        pdfUrl: uploadRes.url,
-        r2Key: uploadRes.key,
-        size: file.size,
-        lastModified: new Date().toISOString(),
-        bgType: 'gradient',
-        bgValue: 'auto',
-        displayTitle: file.name.replace(/\.pdf$/i, ''),
-        seoDescription: `อ่าน ${file.name.replace(/\.pdf$/i, '')} ออนไลน์แบบ Flipbook แชร์ลิงก์และ QR Code ได้ทันที`,
-        isPublic: true,
-        allowIndexing: false,
-        updatedAt: new Date().toISOString(),
-      });
+      // 1. บันทึกลง Supabase (Universal API รองรับทั้ง Web & Mobile)
+      try {
+        await fetch('/api/v1/catalogs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.uid,
+            slug,
+            title: file.name.replace(/\.pdf$/i, ''),
+            fileName: file.name,
+            pdfUrl: uploadRes.url,
+            storageKey: uploadRes.key,
+            fileSizeBytes: file.size,
+            bgType: 'gradient',
+            bgValue: 'auto',
+            isFloating: false,
+            isPublic: true,
+            allowIndexing: false,
+            seoDescription: `อ่าน ${file.name.replace(/\.pdf$/i, '')} ออนไลน์แบบ Flipbook แชร์ลิงก์และ QR Code ได้ทันที`,
+          }),
+        });
+      } catch (sbErr) {
+        console.warn('Supabase save error:', sbErr);
+      }
+
+      // 2. สำรองลง Firestore
+      try {
+        const catalogsRef = collection(db, 'catalogs');
+        await addDoc(catalogsRef, {
+          userId: user.uid,
+          userEmail: user.email || '',
+          userName: user.displayName || user.email?.split('@')[0] || 'User',
+          userPhoto: user.photoURL || '',
+          docType: 'catalog',
+          slug,
+          fileName: file.name,
+          pdfUrl: uploadRes.url,
+          r2Key: uploadRes.key,
+          size: file.size,
+          lastModified: new Date().toISOString(),
+          bgType: 'gradient',
+          bgValue: 'auto',
+          displayTitle: file.name.replace(/\.pdf$/i, ''),
+          seoDescription: `อ่าน ${file.name.replace(/\.pdf$/i, '')} ออนไลน์แบบ Flipbook แชร์ลิงก์และ QR Code ได้ทันที`,
+          isPublic: true,
+          allowIndexing: false,
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (fsErr) {
+        console.warn('Firestore backup note:', fsErr);
+      }
 
       setUploadResult({ slug });
       setFile(null);
@@ -434,8 +559,23 @@ export default function DashboardPage() {
     if (!confirm(`ลบแค็ตตาล็อก "${item.fileName.replace(/-/g, ' ')}" ใช่ไหมครับ? ผู้ใช้ภายนอกจะไม่สามารถเปิดอ่านลิงก์นี้ได้อีก`)) return;
 
     try {
-      await deleteDoc(doc(db, 'catalogs', item.id));
+      // 1. ลบจาก Supabase ผ่าน API
+      try {
+        await fetch(`/api/v1/catalogs/${item.id}`, {
+          method: 'DELETE',
+        });
+      } catch (sbErr) {
+        console.warn('Supabase delete note:', sbErr);
+      }
 
+      // 2. ลบจาก Firestore (หากเป็นเล่มเดิม)
+      try {
+        await deleteDoc(doc(db, 'catalogs', item.id));
+      } catch (fsErr) {
+        console.warn('Firestore delete note:', fsErr);
+      }
+
+      // 3. ลบไฟล์บน R2
       await fetch('/api/delete-file', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
