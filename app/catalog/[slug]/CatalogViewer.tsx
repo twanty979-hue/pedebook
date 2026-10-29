@@ -13,13 +13,14 @@ const EbookViewer = dynamic(() => import('../../components/EbookViewer'), {
 
 interface CatalogViewerProps {
   slug: string;
+  catalogId?: string;
   bgType?: string;
   bgValue?: string;
   isFloating?: boolean;
   adEnabled?: boolean;
 }
 
-export default function CatalogViewer({ slug, bgType, bgValue, isFloating, adEnabled }: CatalogViewerProps) {
+export default function CatalogViewer({ slug, catalogId, bgType, bgValue, isFloating, adEnabled }: CatalogViewerProps) {
   return (
     <EbookViewer
       pdfUrl={`/api/pdf-proxy?slug=${encodeURIComponent(slug)}`}
@@ -27,6 +28,7 @@ export default function CatalogViewer({ slug, bgType, bgValue, isFloating, adEna
       bgValue={bgValue || 'auto'}
       isFloating={isFloating ?? false}
       slug={slug}
+      catalogId={catalogId || slug}
       adEnabled={adEnabled ?? false}
     />
   );

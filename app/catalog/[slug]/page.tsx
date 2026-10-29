@@ -89,6 +89,7 @@ export default async function CatalogPage({ params }: CatalogPageProps) {
       />
       <CatalogViewer
         slug={slug}
+        catalogId={catalog.id}
         bgType={catalog.bgType}
         bgValue={catalog.bgValue}
         isFloating={catalog.isFloating}
