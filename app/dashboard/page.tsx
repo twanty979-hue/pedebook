@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import { onAuthStateChanged, signOut, signInAnonymously, User } from 'firebase/auth';
 import {
   collection,
   query,
@@ -51,6 +51,7 @@ interface CatalogItem {
   userEmail?: string;
   userName?: string;
   userPhoto?: string;
+  adEnabled?: boolean;
 }
 
 function createCatalogSlug(fileName: string): string {
@@ -126,11 +127,36 @@ export default function DashboardPage() {
     }
   }, [editModal]);
 
-  // 1. ตรวจสอบสิทธิ์และนำทาง
+  // 1. ตรวจสอบสิทธิ์หรือสร้าง Guest Session ทันที (ไม่ต้องสมัครสมาชิก)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
-        router.push('/login');
+        try {
+          const cred = await signInAnonymously(auth);
+          setUser(cred.user);
+          setAuthLoading(false);
+          syncUserProfile(cred.user);
+        } catch (err) {
+          console.warn('Anonymous auth unavailable, fallback to local guest session:', err);
+          let guestId = '';
+          if (typeof window !== 'undefined') {
+            guestId = localStorage.getItem('pedebook_guest_uid') || '';
+            if (!guestId) {
+              guestId = 'guest_' + crypto.randomUUID().slice(0, 12);
+              localStorage.setItem('pedebook_guest_uid', guestId);
+            }
+          }
+          const mockGuest = {
+            uid: guestId || 'guest_user',
+            email: null,
+            displayName: 'ผู้ใช้งานทั่วไป',
+            photoURL: null,
+            isAnonymous: true,
+          } as unknown as User;
+          setUser(mockGuest);
+          setAuthLoading(false);
+          fetchCatalogs(mockGuest.uid);
+        }
       } else {
         setUser(currentUser);
         setAuthLoading(false);
@@ -138,7 +164,7 @@ export default function DashboardPage() {
       }
     });
     return () => unsubscribe();
-  }, [router]);
+  }, []);
 
   // 2. ดึงแค็ตตาล็อกแยกตามสิทธิ์ผู้ใช้จาก Firestore
   const fetchCatalogs = async (userId: string) => {
@@ -349,11 +375,14 @@ export default function DashboardPage() {
       setUploadStatusText('กำลังบันทึกข้อมูลสมุด...');
       const slug = createCatalogSlug(file.name);
 
+      const totalBytesWithNew = totalBytes + file.size;
+      const isOver100Mb = totalBytesWithNew > 100 * 1024 * 1024;
+
       const catalogsRef = collection(db, 'catalogs');
       await addDoc(catalogsRef, {
         userId: user.uid,
         userEmail: user.email || '',
-        userName: user.displayName || user.email?.split('@')[0] || 'User',
+        userName: user.displayName || (user.isAnonymous ? 'ผู้ใช้งานทั่วไป' : 'User'),
         userPhoto: user.photoURL || '',
         docType: 'catalog',
         slug,
@@ -361,6 +390,7 @@ export default function DashboardPage() {
         pdfUrl: uploadRes.url,
         r2Key: uploadRes.key,
         size: file.size,
+        adEnabled: isOver100Mb,
         lastModified: new Date().toISOString(),
         bgType: 'gradient',
         bgValue: 'auto',
@@ -370,6 +400,19 @@ export default function DashboardPage() {
         allowIndexing: false,
         updatedAt: new Date().toISOString(),
       });
+
+      // หากพื้นที่รวมเกิน 100 MB ปรับสถานะเปิดโฆษณาให้กับสมุดทั้งหมดของผู้ใช้นี้
+      if (isOver100Mb) {
+        catalogs.forEach(async (c) => {
+          if (!c.adEnabled) {
+            try {
+              await updateDoc(doc(db, 'catalogs', c.id), { adEnabled: true });
+            } catch (err) {
+              console.warn('Sync adEnabled error:', err);
+            }
+          }
+        });
+      }
 
       setUploadResult({ slug });
       setFile(null);
@@ -441,6 +484,20 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: item.r2Key }),
       });
+
+      // หากพื้นที่เหลือไม่เกิน 100 MB ปิดโฆษณาให้สมุดที่เหลือ
+      const remainingBytes = catalogs.filter((c) => c.id !== item.id).reduce((acc, c) => acc + (c.size || 0), 0);
+      if (remainingBytes <= 100 * 1024 * 1024) {
+        catalogs.filter((c) => c.id !== item.id).forEach(async (c) => {
+          if (c.adEnabled) {
+            try {
+              await updateDoc(doc(db, 'catalogs', c.id), { adEnabled: false });
+            } catch (err) {
+              console.warn('Reset adEnabled error:', err);
+            }
+          }
+        });
+      }
 
       fetchCatalogs(user.uid);
     } catch (err) {
@@ -601,7 +658,11 @@ export default function DashboardPage() {
             <div className="w-full mr-4">
               <p className="text-xs font-bold uppercase tracking-wider text-[#755a47]">พื้นที่จัดเก็บรวม</p>
               <h3 className="text-3xl font-bold mt-1 text-[#17221c]">{formatSize(totalSize)}</h3>
-              <p className="text-[10px] text-emerald-700 mt-1 font-semibold">คลาวด์ความเร็วสูง CDN (ไม่จำกัด)</p>
+              {totalSize > 100 * 1024 * 1024 ? (
+                <p className="text-[10px] text-amber-700 mt-1 font-semibold">⚡ เกิน 100 MB (เปิดโฆษณาผู้สนับสนุน 5 วิ)</p>
+              ) : (
+                <p className="text-[10px] text-emerald-700 mt-1 font-semibold">✓ ไม่เกิน 100 MB (ไม่มีโฆษณา)</p>
+              )}
             </div>
             <div className="text-[#9a7257] bg-[#9a7257]/5 p-3 rounded-xl shrink-0">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -675,9 +736,16 @@ export default function DashboardPage() {
                       <h3 className="text-xs font-bold text-[#17221c] truncate max-w-[100px] sm:max-w-[120px] leading-tight" title={item.fileName.replace(/-/g, ' ')}>
                         {item.fileName.replace(/-/g, ' ').replace(/\.pdf$/i, '')}
                       </h3>
-                      <p className="text-[9px] text-[#6e746f] mt-0.5 font-mono leading-none">
-                        {formatSize(item.size)}
-                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-[9px] text-[#6e746f] font-mono leading-none">
+                          {formatSize(item.size)}
+                        </p>
+                        {item.adEnabled && (
+                          <span className="text-[8px] bg-amber-100 text-amber-800 px-1 py-0.5 rounded font-semibold leading-none">
+                            Ads 5s
+                          </span>
+                        )}
+                      </div>
                       <a
                         href={`/catalog/${item.slug}`}
                         target="_blank"
