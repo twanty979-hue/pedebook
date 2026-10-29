@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth } from '../src/lib/firebase';
 import { syncUserProfile } from '../src/lib/user-tracking';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase/client';
 
 type NavbarClientProps = {
   locale?: 'th' | 'en';
@@ -38,19 +39,60 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
       };
 
   useEffect(() => {
+    let isMounted = true;
+    if (isSupabaseConfigured()) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user && isMounted) {
+          const sbUser = {
+            uid: session.user.id,
+            email: session.user.email || null,
+            displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+            photoURL: session.user.user_metadata?.avatar_url || null,
+            isAnonymous: false,
+          } as unknown as User;
+          setUser(sbUser);
+          setLoading(false);
+        }
+      });
+
+      supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user && isMounted) {
+          const sbUser = {
+            uid: session.user.id,
+            email: session.user.email || null,
+            displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+            photoURL: session.user.user_metadata?.avatar_url || null,
+            isAnonymous: false,
+          } as unknown as User;
+          setUser(sbUser);
+          setLoading(false);
+        }
+      });
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-      if (currentUser) {
+      if (currentUser && isMounted) {
+        setUser(currentUser);
+        setLoading(false);
         syncUserProfile(currentUser);
+      } else if (!isMounted) {
+        return;
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
   const handleSignOut = async () => {
     try {
+      if (isSupabaseConfigured()) {
+        await supabase.auth.signOut();
+      }
       await signOut(auth);
+      setUser(null);
     } catch (error) {
       console.error('Sign out error', error);
     }

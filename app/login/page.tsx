@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { auth } from "../src/lib/firebase";
 import { syncUserProfile } from "../src/lib/user-tracking";
+import { supabase, isSupabaseConfigured } from "../src/lib/supabase/client";
 
 type ActiveMode = "login" | "register" | "forgot";
 
@@ -32,25 +33,74 @@ export default function LoginPage() {
 
     try {
       if (mode === "login") {
-        const cred = await signInWithEmailAndPassword(auth, email, password);
-        if (cred.user) {
-          syncUserProfile(cred.user);
+        let loggedIn = false;
+
+        // 1. ล็อกอินผ่าน Supabase Auth
+        if (isSupabaseConfigured()) {
+          const { data, error: sbErr } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (!sbErr && data.user) {
+            loggedIn = true;
+            router.push("/dashboard");
+            return;
+          }
         }
-        router.push("/");
+
+        // 2. สำรองผ่าน Firebase Auth
+        try {
+          const cred = await signInWithEmailAndPassword(auth, email, password);
+          if (cred.user) {
+            syncUserProfile(cred.user);
+            loggedIn = true;
+            router.push("/dashboard");
+            return;
+          }
+        } catch (fbErr: any) {
+          if (!loggedIn) {
+            throw fbErr;
+          }
+        }
       } else if (mode === "register") {
         if (password !== confirmPassword) {
           throw new Error("passwords-dont-match");
         }
+
+        // 1. สมัครบน Supabase Auth
+        if (isSupabaseConfigured()) {
+          const { data, error: sbErr } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: { full_name: email.split('@')[0] },
+            },
+          });
+          if (sbErr) throw sbErr;
+          setSuccess("สมัครสมาชิกสำเร็จแล้ว! ระบบกำลังนำคุณไปที่แดชบอร์ด...");
+          setTimeout(() => {
+            router.push("/dashboard");
+          }, 1500);
+          return;
+        }
+
+        // 2. สำรองบน Firebase
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         if (cred.user) {
           syncUserProfile(cred.user);
         }
-        setSuccess("สมัครสมาชิกสำเร็จแล้ว! ระบบกำลังนำคุณไปที่หน้าหลัก...");
+        setSuccess("สมัครสมาชิกสำเร็จแล้ว! ระบบกำลังนำคุณไปที่แดชบอร์ด...");
         setTimeout(() => {
-          router.push("/");
+          router.push("/dashboard");
         }, 1500);
       } else if (mode === "forgot") {
-        await sendPasswordResetEmail(auth, email);
+        if (isSupabaseConfigured()) {
+          await supabase.auth.resetPasswordForEmail(email);
+        }
+        try {
+          await sendPasswordResetEmail(auth, email);
+        } catch (_) {}
+
         setSuccess("ส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลของคุณแล้ว กรุณาตรวจสอบกล่องจดหมายครับ");
         setEmail("");
         setMode("login");
@@ -59,16 +109,16 @@ export default function LoginPage() {
       console.error(err);
       if (err.message === "passwords-dont-match") {
         setError("รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกันครับ");
-      } else if (err.code === "auth/email-already-in-use") {
+      } else if (err.code === "auth/email-already-in-use" || err.message?.includes("already registered")) {
         setError("อีเมลนี้ถูกใช้งานแล้วในระบบครับ");
-      } else if (err.code === "auth/weak-password") {
+      } else if (err.code === "auth/weak-password" || err.message?.includes("weak")) {
         setError("รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษรครับ");
-      } else if (err.code === "auth/invalid-email") {
+      } else if (err.code === "auth/invalid-email" || err.message?.includes("invalid email")) {
         setError("รูปแบบอีเมลไม่ถูกต้องครับ");
-      } else if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+      } else if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential" || err.message?.includes("Invalid login credentials")) {
         setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้งครับ");
       } else {
-        setError("เกิดข้อผิดพลาดขึ้น กรุณาลองใหม่อีกครั้งในภายหลังครับ");
+        setError(err.message || "เกิดข้อผิดพลาดในการดำเนินการ กรุณาลองใหม่อีกครั้ง");
       }
     } finally {
       setLoading(false);
@@ -88,7 +138,7 @@ export default function LoginPage() {
       }
       setSuccess("เข้าสู่ระบบด้วย Google สำเร็จแล้ว!");
       setTimeout(() => {
-        router.push("/");
+        router.push("/dashboard");
       }, 800);
     } catch (err: any) {
       console.error(err);

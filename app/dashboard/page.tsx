@@ -21,6 +21,7 @@ import { auth, db } from '../src/lib/firebase';
 import { syncUserProfile } from '../src/lib/user-tracking';
 import { PLANS, validateUploadLimits } from '../src/lib/plans';
 import PageAnalyticsBoard from '../components/PageAnalyticsBoard';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase/client';
 
 const BookCover = dynamic(() => import('../components/BookCover'), {
   ssr: false,
@@ -127,43 +128,90 @@ export default function DashboardPage() {
     }
   }, [editModal]);
 
-  // 1. ตรวจสอบสิทธิ์หรือสร้าง Guest Session ทันที (ไม่ต้องสมัครสมาชิก)
+  // 1. ตรวจสอบสิทธิ์ (รองรับทั้ง Supabase Auth และ Firebase Auth / Guest)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!currentUser) {
+    let isMounted = true;
+
+    async function initAuth() {
+      // 1. ตรวจสอบ Supabase Auth ก่อน
+      if (isSupabaseConfigured()) {
         try {
-          const cred = await signInAnonymously(auth);
-          setUser(cred.user);
-          setAuthLoading(false);
-          syncUserProfile(cred.user);
-        } catch (err) {
-          console.warn('Anonymous auth unavailable, fallback to local guest session:', err);
-          let guestId = '';
-          if (typeof window !== 'undefined') {
-            guestId = localStorage.getItem('pedebook_guest_uid') || '';
-            if (!guestId) {
-              guestId = 'guest_' + crypto.randomUUID().slice(0, 12);
-              localStorage.setItem('pedebook_guest_uid', guestId);
-            }
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user && isMounted) {
+            const sbUser = {
+              uid: session.user.id,
+              email: session.user.email || null,
+              displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+              photoURL: session.user.user_metadata?.avatar_url || null,
+              isAnonymous: false,
+            } as unknown as User;
+            setUser(sbUser);
+            setAuthLoading(false);
+            fetchCatalogs(session.user.id);
+            return;
           }
-          const mockGuest = {
-            uid: guestId || 'guest_user',
-            email: null,
-            displayName: 'ผู้ใช้งานทั่วไป',
-            photoURL: null,
-            isAnonymous: true,
-          } as unknown as User;
-          setUser(mockGuest);
-          setAuthLoading(false);
-          fetchCatalogs(mockGuest.uid);
+
+          supabase.auth.onAuthStateChange((_event, session) => {
+            if (session?.user && isMounted) {
+              const sbUser = {
+                uid: session.user.id,
+                email: session.user.email || null,
+                displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+                photoURL: session.user.user_metadata?.avatar_url || null,
+                isAnonymous: false,
+              } as unknown as User;
+              setUser(sbUser);
+              setAuthLoading(false);
+              fetchCatalogs(session.user.id);
+            }
+          });
+        } catch (sbErr) {
+          console.warn('Supabase auth check note:', sbErr);
         }
-      } else {
-        setUser(currentUser);
-        setAuthLoading(false);
-        syncUserProfile(currentUser);
       }
-    });
-    return () => unsubscribe();
+
+      // 2. ถ้าไม่มี Supabase session ให้ตรวจสอบ Firebase Auth / Guest
+      const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        if (!isMounted) return;
+        if (!currentUser) {
+          try {
+            const cred = await signInAnonymously(auth);
+            setUser(cred.user);
+            setAuthLoading(false);
+            syncUserProfile(cred.user);
+          } catch (err) {
+            console.warn('Anonymous auth unavailable, fallback to local guest session:', err);
+            let guestId = '';
+            if (typeof window !== 'undefined') {
+              guestId = localStorage.getItem('pedebook_guest_uid') || '';
+              if (!guestId) {
+                guestId = 'guest_' + crypto.randomUUID().slice(0, 12);
+                localStorage.setItem('pedebook_guest_uid', guestId);
+              }
+            }
+            const mockGuest = {
+              uid: guestId || 'guest_user',
+              email: null,
+              displayName: 'ผู้ใช้งานทั่วไป',
+              photoURL: null,
+              isAnonymous: true,
+            } as unknown as User;
+            setUser(mockGuest);
+            setAuthLoading(false);
+            fetchCatalogs(mockGuest.uid);
+          }
+        } else {
+          setUser(currentUser);
+          setAuthLoading(false);
+          syncUserProfile(currentUser);
+        }
+      });
+    }
+
+    initAuth();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // 2. ดึงแค็ตตาล็อกแยกตามสิทธิ์ผู้ใช้จาก Supabase REST API + Firestore
@@ -609,7 +657,14 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-      await signOut(auth);
+      if (isSupabaseConfigured()) {
+        try {
+          await supabase.auth.signOut();
+        } catch (_) {}
+      }
+      try {
+        await signOut(auth);
+      } catch (_) {}
       router.push('/login');
     }
   };
