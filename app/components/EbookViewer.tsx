@@ -24,17 +24,35 @@ if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
   pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 }
 
-const BookPage = React.forwardRef<HTMLDivElement, { pageNumber: number; width: number; height: number; onRenderSuccess?: () => void }>(
-  ({ pageNumber, width, height, onRenderSuccess }, ref) => (
+const BookPage = React.forwardRef<HTMLDivElement, {
+  pageNumber: number;
+  width: number;
+  height: number;
+  shouldRender?: boolean;
+  onRenderSuccess?: () => void;
+}>(
+  ({ pageNumber, width, height, shouldRender = true, onRenderSuccess }, ref) => (
     <div ref={ref} style={{ width, height, background: '#fff', overflow: 'hidden', position: 'relative' }}>
-      <Page
-        pageNumber={pageNumber}
-        width={width}
-        height={height}
-        renderAnnotationLayer={false}
-        renderTextLayer={false}
-        onRenderSuccess={onRenderSuccess}
-      />
+      {shouldRender ? (
+        <Page
+          pageNumber={pageNumber}
+          width={width}
+          height={height}
+          renderAnnotationLayer={false}
+          renderTextLayer={false}
+          onRenderSuccess={onRenderSuccess}
+          loading={
+            <div style={{ width, height, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <div style={{ width: 22, height: 22, border: '2px solid rgba(0,0,0,0.1)', borderTopColor: '#9a7257', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <span style={{ fontSize: 11, color: '#999', letterSpacing: 0.5 }}>โหลดหน้า {pageNumber}...</span>
+            </div>
+          }
+        />
+      ) : (
+        <div style={{ width, height, background: '#fafaf9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: 11, color: '#bbb', letterSpacing: 0.5 }}>หน้า {pageNumber}</span>
+        </div>
+      )}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
         pointerEvents: 'none',
@@ -115,10 +133,24 @@ export default function EbookViewer({
     enabled: isClient && numPages > 0,
   });
 
+  // ระบบ Virtualization โหลดเฉพาะหน้าที่จำเป็นเพื่อความเร็วสูงสุด 60FPS
+  const [renderedPages, setRenderedPages] = useState<Set<number>>(() => new Set([1, 2, 3]));
+
+  useEffect(() => {
+    if (!numPages) return;
+    setRenderedPages((prev) => {
+      const next = new Set(prev);
+      const minPage = Math.max(1, currentPage - 1);
+      const maxPage = Math.min(numPages, currentPage + 4);
+      for (let p = minPage; p <= maxPage; p++) {
+        next.add(p);
+      }
+      return next;
+    });
+  }, [currentPage, numPages]);
+
   const fileConfig = useMemo(() => ({
     url: pdfUrl,
-    disableAutoFetch: true,
-    disableStream: true,
   }), [pdfUrl]);
 
   useEffect(() => {
@@ -636,15 +668,26 @@ export default function EbookViewer({
                     transition: 'transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)',
                   }}
                 >
-                  <BookPage key={1} pageNumber={1} width={pageSize.width} height={pageSize.height} onRenderSuccess={onCoverRenderSuccess} />
-                  {Array.from({ length: numPages - 1 }, (_, i) => (
-                    <BookPage
-                      key={i + 2}
-                      pageNumber={i + 2}
-                      width={pageSize.width}
-                      height={pageSize.height}
-                    />
-                  ))}
+                  <BookPage
+                    key={1}
+                    pageNumber={1}
+                    width={pageSize.width}
+                    height={pageSize.height}
+                    shouldRender={true}
+                    onRenderSuccess={onCoverRenderSuccess}
+                  />
+                  {Array.from({ length: numPages - 1 }, (_, i) => {
+                    const pNum = i + 2;
+                    return (
+                      <BookPage
+                        key={pNum}
+                        pageNumber={pNum}
+                        width={pageSize.width}
+                        height={pageSize.height}
+                        shouldRender={renderedPages.has(pNum)}
+                      />
+                    );
+                  })}
                 </HTMLFlipBook>
               </div>
             </div>
