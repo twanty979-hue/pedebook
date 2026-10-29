@@ -439,29 +439,44 @@ export default function DashboardPage() {
         fileName: presignData.fileName,
       };
     } catch (directErr) {
-      console.warn('Direct upload failed, checking fallback:', directErr);
-      // Fallback ถ้าไฟล์ขนาด <= 4.5 MB ให้ลองส่งผ่าน /api/upload
-      if (targetFile.size <= 4.5 * 1024 * 1024) {
-        onProgress(50, 'กำลังส่งไฟล์สำรอง...');
-        const formData = new FormData();
-        formData.append('file', targetFile);
-        formData.append('userId', userId);
+      console.warn('Direct upload failed, switching to secure server upload fallback:', directErr);
+      onProgress(30, 'กำลังส่งไฟล์ผ่านเซิร์ฟเวอร์ความเร็วสูง...');
 
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!data.success) {
-          throw new Error(data.error || 'การส่งไฟล์สำรองไม่สำเร็จ');
-        }
-        onProgress(100, 'อัปโหลดสำเร็จ!');
-        return data;
-      }
+      const formData = new FormData();
+      formData.append('file', targetFile);
+      formData.append('userId', userId);
 
-      throw new Error(
-        'อัปโหลดไฟล์ขนาดใหญ่ไม่สำเร็จ: กรุณาเปิดใช้งาน CORS บน Cloudflare R2 หรือติดต่อแอดมินเพื่อตรวจสอบครับ'
-      );
+      return await new Promise<{ url: string; key: string; fileName: string }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/upload');
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.min(95, Math.round((event.loaded / event.total) * 65) + 30);
+            onProgress(percent, `กำลังส่งไฟล์เข้าสู่คลาวด์ ${percent}%...`);
+          }
+        };
+
+        xhr.onload = () => {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            if (xhr.status >= 200 && xhr.status < 300 && data.success) {
+              onProgress(100, 'อัปโหลดสำเร็จ!');
+              resolve(data);
+            } else {
+              reject(new Error(data.error || 'การส่งไฟล์ไม่สำเร็จ'));
+            }
+          } catch (e) {
+            reject(new Error('ตอบกลับจากเซิร์ฟเวอร์ไม่ถูกต้อง'));
+          }
+        };
+
+        xhr.onerror = () => {
+          reject(new Error('การเชื่อมต่อกับเซิร์ฟเวอร์ล้มเหลว กรุณาลองใหม่อีกครั้งครับ'));
+        };
+
+        xhr.send(formData);
+      });
     }
   };
 

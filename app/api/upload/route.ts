@@ -1,6 +1,9 @@
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 120; // 2 minutes for large files
+
 const r2Endpoint = (process.env.R2_ENDPOINT || '').trim().replace(/\/+$/, '');
 
 const r2Client = new S3Client({
