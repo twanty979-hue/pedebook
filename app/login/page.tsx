@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { syncUserProfile } from "../src/lib/user-tracking";
 import { supabase, isSupabaseConfigured } from "../src/lib/supabase/client";
@@ -16,6 +16,29 @@ export default function LoginPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  // ตรวจสอบหากล็อกอินอยู่แล้ว ให้นำไปที่แดชบอร์ดทันที
+  useEffect(() => {
+    let isMounted = true;
+    if (isSupabaseConfigured()) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user && isMounted) {
+          router.replace("/dashboard");
+        }
+      });
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user && isMounted) {
+          router.replace("/dashboard");
+        }
+      });
+
+      return () => {
+        isMounted = false;
+        subscription.unsubscribe();
+      };
+    }
+  }, [router]);
 
   const handleEmailAction = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -123,7 +146,7 @@ export default function LoginPage() {
         throw new Error("ระบบ Supabase ยังไม่ได้ตั้งค่า Keys ครับ");
       }
 
-      const redirectTo = `${window.location.origin}/dashboard`;
+      const redirectTo = `${window.location.origin}/auth/callback`;
       const { error: sbErr } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {

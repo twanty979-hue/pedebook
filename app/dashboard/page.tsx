@@ -122,7 +122,7 @@ export default function DashboardPage() {
     }
   }, [editModal]);
 
-  // 1. ตรวจสอบสิทธิ์ (Supabase Auth 100% บังคับล็อกอิน ไม่ใช้ Guest)
+  // 1. ตรวจสอบสิทธิ์ (Supabase Auth 100% บังคับล็อกอิน รองรับทั้ง Direct และ OAuth Redirect)
   useEffect(() => {
     let isMounted = true;
     let authSubscription: { unsubscribe: () => void } | undefined;
@@ -133,10 +133,48 @@ export default function DashboardPage() {
         localStorage.removeItem('pedebook_guest_uid');
       }
 
-      if (isSupabaseConfigured()) {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user && isMounted) {
+      if (!isSupabaseConfigured()) {
+        if (isMounted) {
+          setUser(null);
+          setAuthLoading(false);
+          router.push('/login');
+        }
+        return;
+      }
+
+      try {
+        // 1. ตรวจสอบ query string ในกรณีที่ Supabase redirect กลับมาที่ /dashboard โดยตรง
+        let incomingCode: string | null = null;
+        if (typeof window !== 'undefined') {
+          const searchParams = new URLSearchParams(window.location.search);
+          incomingCode = searchParams.get('code');
+          if (incomingCode) {
+            try {
+              const { data: exchangeData } = await supabase.auth.exchangeCodeForSession(incomingCode);
+              if (exchangeData?.session?.user && isMounted) {
+                const u = exchangeData.session.user;
+                const sbUser: DashboardUser = {
+                  uid: u.id,
+                  email: u.email || null,
+                  displayName: u.user_metadata?.full_name || u.email?.split('@')[0] || 'User',
+                  photoURL: u.user_metadata?.avatar_url || null,
+                };
+                setUser(sbUser);
+                setAuthLoading(false);
+                fetchCatalogs(u.id);
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return;
+              }
+            } catch (exchangeErr) {
+              console.warn('OAuth code exchange note:', exchangeErr);
+            }
+          }
+        }
+
+        // 2. ผูก listener onAuthStateChange ก่อน เพื่อไม่ให้พลาด event ตอน initial session
+        const { data } = supabase.auth.onAuthStateChange((event, session) => {
+          if (!isMounted) return;
+          if (session?.user) {
             const sbUser: DashboardUser = {
               uid: session.user.id,
               email: session.user.email || null,
@@ -146,42 +184,37 @@ export default function DashboardPage() {
             setUser(sbUser);
             setAuthLoading(false);
             fetchCatalogs(session.user.id);
-            return;
-          } else if (isMounted) {
+          } else if (event === 'SIGNED_OUT') {
             setUser(null);
             setAuthLoading(false);
             router.push('/login');
-            return;
           }
+        });
+        authSubscription = data.subscription;
 
-          const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-            if (!isMounted) return;
-            if (session?.user) {
-              const sbUser: DashboardUser = {
-                uid: session.user.id,
-                email: session.user.email || null,
-                displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
-                photoURL: session.user.user_metadata?.avatar_url || null,
-              };
-              setUser(sbUser);
-              setAuthLoading(false);
-              fetchCatalogs(session.user.id);
-            } else {
-              setUser(null);
-              setAuthLoading(false);
-              router.push('/login');
-            }
-          });
-          authSubscription = data.subscription;
-        } catch (sbErr) {
-          console.warn('Supabase auth check note:', sbErr);
-          if (isMounted) {
-            setUser(null);
-            setAuthLoading(false);
-            router.push('/login');
-          }
+        // 3. ตรวจสอบ session ปัจจุบัน
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user && isMounted) {
+          const sbUser: DashboardUser = {
+            uid: session.user.id,
+            email: session.user.email || null,
+            displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+            photoURL: session.user.user_metadata?.avatar_url || null,
+          };
+          setUser(sbUser);
+          setAuthLoading(false);
+          fetchCatalogs(session.user.id);
+          return;
         }
-      } else {
+
+        // ถ้าไม่มี code ใน URL และไม่มี session ให้พาไปหน้า login
+        if (!incomingCode && isMounted) {
+          setUser(null);
+          setAuthLoading(false);
+          router.push('/login');
+        }
+      } catch (sbErr) {
+        console.warn('Supabase auth check note:', sbErr);
         if (isMounted) {
           setUser(null);
           setAuthLoading(false);
