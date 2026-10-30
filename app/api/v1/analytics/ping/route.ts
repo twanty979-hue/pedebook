@@ -11,6 +11,8 @@ export async function POST(request: NextRequest) {
       durationSeconds,
       sessionId,
       deviceType,
+      readerId,
+      isNewReader,
     } = body;
 
     if (!catalogId || pageNumber === undefined || durationSeconds === undefined) {
@@ -19,6 +21,7 @@ export async function POST(request: NextRequest) {
 
     const duration = Math.min(Math.max(Number(durationSeconds) || 0, 0.1), 600); // capped at 10 minutes
     const session = sessionId || 'anon_session';
+    const reader = readerId || session;
     const device = deviceType || 'desktop';
     const userAgent = request.headers.get('user-agent') || '';
     const referrer = request.headers.get('referer') || '';
@@ -33,6 +36,8 @@ export async function POST(request: NextRequest) {
         p_device_type: device,
         p_user_agent: userAgent,
         p_referrer: referrer,
+        p_reader_id: reader,
+        p_is_new_reader: isNewReader !== false,
       });
 
       if (error) {
@@ -41,10 +46,10 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // In-memory / development fallback log
-      console.log(`[Analytics Ping Fallback] Catalog: ${catalogId}, Page: ${pageNumber}, Stay: ${duration.toFixed(1)}s, Session: ${session}`);
+      console.log(`[Analytics Ping Fallback] Catalog: ${catalogId}, Page: ${pageNumber}, Stay: ${duration.toFixed(1)}s, Reader: ${reader}`);
     }
 
-    return NextResponse.json({ success: true, recorded: { pageNumber, duration } });
+    return NextResponse.json({ success: true, recorded: { pageNumber, duration, reader } });
   } catch (err: unknown) {
     console.error('Analytics ping error:', err);
     const msg = err instanceof Error ? err.message : 'Unknown error';

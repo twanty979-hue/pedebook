@@ -135,6 +135,8 @@ CREATE TABLE IF NOT EXISTS public.page_analytics_logs (
     catalog_id UUID NOT NULL REFERENCES public.catalogs(id) ON DELETE CASCADE,
     page_number INT NOT NULL,
     session_id TEXT NOT NULL,
+    reader_id TEXT,
+    is_new_reader BOOLEAN DEFAULT TRUE,
     duration_seconds NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
     device_type TEXT NOT NULL DEFAULT 'desktop', -- 'mobile', 'tablet', 'desktop'
     user_agent TEXT,
@@ -144,8 +146,26 @@ CREATE TABLE IF NOT EXISTS public.page_analytics_logs (
 
 CREATE INDEX IF NOT EXISTS idx_analytics_catalog_time ON public.page_analytics_logs(catalog_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_analytics_session ON public.page_analytics_logs(session_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_reader ON public.page_analytics_logs(reader_id);
 
--- 3.7 AD CAMPAIGNS (Injected unblockable ads for over-quota free books)
+-- 3.7 CATALOG READERS (Tracks distinct human readers, total visits, and return rates per catalog)
+CREATE TABLE IF NOT EXISTS public.catalog_readers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    catalog_id UUID NOT NULL REFERENCES public.catalogs(id) ON DELETE CASCADE,
+    reader_id TEXT NOT NULL,
+    visit_count INT NOT NULL DEFAULT 1,
+    total_read_seconds NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    first_seen_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc'::text, NOW()),
+    last_seen_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc'::text, NOW()),
+    device_type TEXT NOT NULL DEFAULT 'desktop',
+    referrer TEXT,
+    CONSTRAINT unique_catalog_reader UNIQUE (catalog_id, reader_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_catalog_readers_catalog ON public.catalog_readers(catalog_id);
+CREATE INDEX IF NOT EXISTS idx_catalog_readers_reader ON public.catalog_readers(reader_id);
+
+-- 3.8 AD CAMPAIGNS (Injected unblockable ads for over-quota free books)
 CREATE TABLE IF NOT EXISTS public.ad_campaigns (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
@@ -226,7 +246,9 @@ CREATE OR REPLACE FUNCTION public.record_page_stay_time(
     p_session_id TEXT,
     p_device_type TEXT DEFAULT 'desktop',
     p_user_agent TEXT DEFAULT NULL,
-    p_referrer TEXT DEFAULT NULL
+    p_referrer TEXT DEFAULT NULL,
+    p_reader_id TEXT DEFAULT NULL,
+    p_is_new_reader BOOLEAN DEFAULT TRUE
 )
 RETURNS VOID AS $$
 DECLARE
@@ -245,11 +267,13 @@ BEGIN
         RETURN;
     END IF;
 
-    -- 1. Insert into raw event log (fixed column order!)
+    -- 1. Insert into raw event log
     INSERT INTO public.page_analytics_logs (
         catalog_id,
         page_number,
         session_id,
+        reader_id,
+        is_new_reader,
         duration_seconds,
         device_type,
         user_agent,
@@ -258,6 +282,8 @@ BEGIN
         v_catalog_uuid,
         p_page_number,
         p_session_id,
+        COALESCE(p_reader_id, p_session_id),
+        p_is_new_reader,
         LEAST(p_duration_seconds, 600.00),
         p_device_type,
         p_user_agent,
@@ -290,7 +316,34 @@ BEGIN
         ),
         updated_at = NOW();
 
-    -- 3. Increment overall catalog view count if first page
+    -- 3. Upsert distinct reader identity into catalog_readers
+    IF p_reader_id IS NOT NULL THEN
+        INSERT INTO public.catalog_readers (
+            catalog_id,
+            reader_id,
+            visit_count,
+            total_read_seconds,
+            first_seen_at,
+            last_seen_at,
+            device_type,
+            referrer
+        ) VALUES (
+            v_catalog_uuid,
+            p_reader_id,
+            1,
+            LEAST(p_duration_seconds, 600.00),
+            NOW(),
+            NOW(),
+            p_device_type,
+            p_referrer
+        )
+        ON CONFLICT (catalog_id, reader_id) DO UPDATE
+        SET visit_count = CASE WHEN p_is_new_reader THEN public.catalog_readers.visit_count ELSE public.catalog_readers.visit_count + 1 END,
+            total_read_seconds = public.catalog_readers.total_read_seconds + LEAST(EXCLUDED.total_read_seconds, 600.00),
+            last_seen_at = NOW();
+    END IF;
+
+    -- 4. Increment overall catalog view count if first page
     IF p_page_number = 1 THEN
         UPDATE public.catalogs
         SET total_views = total_views + 1,
@@ -444,6 +497,15 @@ CREATE POLICY "Owners can view page stats"
         EXISTS (
             SELECT 1 FROM public.catalogs
             WHERE id = catalog_page_stats.catalog_id AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Owners can view catalog readers"
+    ON public.catalog_readers FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.catalogs
+            WHERE id = catalog_readers.catalog_id AND user_id = auth.uid()
         )
     );
 

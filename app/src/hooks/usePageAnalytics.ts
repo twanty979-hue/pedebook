@@ -12,10 +12,32 @@ export function usePageAnalytics({ catalogId, currentPage, enabled = true }: Use
   const activePageRef = useRef<number>(currentPage);
   const pageEnterTimeRef = useRef<number>(Date.now());
   const sessionIdRef = useRef<string>('');
+  const readerIdRef = useRef<string>('');
+  const isNewReaderRef = useRef<boolean>(true);
 
-  // 1. Initialize or load unique session ID
+  // 1. Initialize or load persistent Reader ID (คนอ่านจริง) and Session ID
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    // Persistent Reader ID across browser sessions (เก็บถาวรใน localStorage เพื่อจำแนกคนอ่านจริง)
+    let rId = window.localStorage.getItem('pedebook_reader_id');
+    if (!rId) {
+      rId = `rdr_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      window.localStorage.setItem('pedebook_reader_id', rId);
+    }
+    readerIdRef.current = rId;
+
+    // ตรวจสอบว่าผู้อ่านคนนี้เคยเปิดอ่านเล่มนี้มาก่อนหรือไม่ (New vs Returning Reader)
+    const readKey = `pedebook_read_${catalogId}`;
+    const previousVisit = window.localStorage.getItem(readKey);
+    if (!previousVisit) {
+      isNewReaderRef.current = true;
+      window.localStorage.setItem(readKey, Date.now().toString());
+    } else {
+      isNewReaderRef.current = false;
+    }
+
+    // Session ID สำหรับเซสชันปัจจุบัน (ใน sessionStorage)
     let sId = window.sessionStorage.getItem(`pedebook_session_${catalogId}`);
     if (!sId) {
       sId = `sess_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -24,7 +46,7 @@ export function usePageAnalytics({ catalogId, currentPage, enabled = true }: Use
     sessionIdRef.current = sId;
   }, [catalogId]);
 
-  // 2. Helper to send page stay duration
+  // 2. Helper to send page stay duration with Reader identity
   const sendPageDuration = (pageNumber: number, durationSeconds: number) => {
     if (!catalogId || durationSeconds < 0.5) return; // ignore sub-second instant flips
 
@@ -33,6 +55,8 @@ export function usePageAnalytics({ catalogId, currentPage, enabled = true }: Use
       pageNumber,
       durationSeconds: Number(durationSeconds.toFixed(1)),
       sessionId: sessionIdRef.current,
+      readerId: readerIdRef.current,
+      isNewReader: isNewReaderRef.current,
       deviceType: typeof window !== 'undefined' && window.innerWidth < 768 ? 'mobile' : 'desktop',
     });
 

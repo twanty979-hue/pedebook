@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { supabase, isSupabaseConfigured } from '../../src/lib/supabase/client';
 
 export interface PageStatItem {
@@ -29,6 +28,17 @@ export interface CatalogSummaryItem {
   avgDurationSeconds: number;
   pageCount: number;
   topPage: number;
+  uniqueReaders?: number;
+  returningCount?: number;
+  newCount?: number;
+  returnRate?: number;
+}
+
+export interface ReaderMetrics {
+  totalUniqueReaders: number;
+  returningReaders: number;
+  newReaders: number;
+  returnRatePercent: number;
 }
 
 function formatSize(bytes?: number): string {
@@ -52,6 +62,19 @@ function AnalyticsDashboardContent() {
   const [catalogs, setCatalogs] = useState<CatalogSummaryItem[]>([]);
   const [selectedId, setSelectedId] = useState<string>(initialId);
   const [pageStats, setPageStats] = useState<PageStatItem[]>([]);
+  const [globalReaderMetrics, setGlobalReaderMetrics] = useState<ReaderMetrics>({
+    totalUniqueReaders: 0,
+    returningReaders: 0,
+    newReaders: 0,
+    returnRatePercent: 0,
+  });
+  const [singleBookReaders, setSingleBookReaders] = useState<ReaderMetrics>({
+    totalUniqueReaders: 0,
+    returningReaders: 0,
+    newReaders: 0,
+    returnRatePercent: 0,
+  });
+
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(false);
   const [sortBy, setSortBy] = useState<'page' | 'duration' | 'views'>('page');
@@ -80,6 +103,12 @@ function AnalyticsDashboardContent() {
 
         if (data.success && data.overview && Array.isArray(data.overview.catalogs) && isMounted) {
           setCatalogs(data.overview.catalogs);
+          setGlobalReaderMetrics({
+            totalUniqueReaders: data.overview.totalUniqueReaders || 0,
+            returningReaders: data.overview.totalReturningReaders || 0,
+            newReaders: data.overview.totalNewReaders || 0,
+            returnRatePercent: data.overview.returnRatePercent || 0,
+          });
 
           // ถ้ามีการระบุ id ใน URL ให้เลือกเล่มนั้น ถ้าไม่มีให้คงเดิม
           if (initialId && initialId !== 'all') {
@@ -115,8 +144,18 @@ function AnalyticsDashboardContent() {
       try {
         const res = await fetch(`/api/v1/analytics/stats?catalogId=${selectedId}`);
         const data = await res.json();
-        if (data.success && Array.isArray(data.stats) && isMounted) {
-          setPageStats(data.stats);
+        if (data.success && isMounted) {
+          if (Array.isArray(data.stats)) {
+            setPageStats(data.stats);
+          }
+          if (data.readers) {
+            setSingleBookReaders({
+              totalUniqueReaders: data.readers.totalUniqueReaders || 0,
+              returningReaders: data.readers.returningReaders || 0,
+              newReaders: data.readers.newReaders || 0,
+              returnRatePercent: data.readers.returnRatePercent || 0,
+            });
+          }
         }
       } catch (err) {
         console.error('Failed to load page stats for book:', err);
@@ -182,7 +221,7 @@ function AnalyticsDashboardContent() {
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#d9d7cd] bg-white hover:bg-neutral-50 text-xs font-bold text-[#755a47] shadow-xs transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#d9d7cd] bg-white hover:bg-neutral-50 text-xs font-bold text-[#755a47] shadow-xs transition cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -222,13 +261,13 @@ function AnalyticsDashboardContent() {
                   const newUrl = e.target.value === 'all' ? '/dashboard/analytics' : `/dashboard/analytics?id=${e.target.value}`;
                   window.history.pushState({}, '', newUrl);
                 }}
-                className="w-full sm:w-64 appearance-none rounded-xl border border-[#d9d7cd] bg-white px-3.5 py-2 pr-9 text-xs font-bold text-[#17221c] shadow-xs outline-none focus:border-[#243129] cursor-pointer"
+                className="w-full sm:w-72 appearance-none rounded-xl border border-[#d9d7cd] bg-white px-3.5 py-2 pr-9 text-xs font-bold text-[#17221c] shadow-xs outline-none focus:border-[#243129] cursor-pointer"
               >
                 <option value="all">🌐 ภาพรวมทุกเล่ม (Overview All Books)</option>
                 <optgroup label="── เลือกเฉพาะเล่ม ──">
                   {catalogs.map((cat) => (
                     <option key={cat.id} value={cat.id}>
-                      📖 {cat.displayTitle} ({cat.totalViews} วิว)
+                      📖 {cat.displayTitle} ({cat.uniqueReaders || cat.totalViews} คน)
                     </option>
                   ))}
                 </optgroup>
@@ -262,48 +301,61 @@ function AnalyticsDashboardContent() {
                   ภาพรวมพฤติกรรมผู้อ่านทุกเล่ม
                 </h2>
                 <p className="text-xs sm:text-sm text-[#6e746f] mt-1">
-                  ติดตามผลตอบรับและเวลาที่ลูกค้าเปิดอ่านแค็ตตาล็อกทั้งหมดของคุณแบบเรียลไทม์
+                  ติดตามผลตอบรับ คนอ่านจริง และสัดส่วนผู้อ่านเดิมที่กลับมาเปิดอ่านซ้ำ
                 </p>
               </div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>อัปเดตเรียลไทม์</span>
+                <span>จำแนกคนอ่านจริงรายอุปกรณ์</span>
               </span>
             </div>
 
-            {/* 4 Executive KPI Cards */}
+            {/* 4 Executive KPI Cards with Reader Loyalty */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Card 1: Unique Readers (คนอ่านจริงทั้งหมด) */}
               <div className="bg-white border border-[#e2dfd5] rounded-3xl p-5 shadow-xs">
                 <div className="flex items-center justify-between text-[#755a47] mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider">แค็ตตาล็อกทั้งหมด</span>
-                  <div className="p-2 rounded-xl bg-[#243129]/5 text-[#243129]">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                  </div>
-                </div>
-                <h3 className="text-3xl font-extrabold text-[#17221c]">{catalogs.length} เล่ม</h3>
-                <p className="text-[11px] text-[#6e746f] mt-1">ออนไลน์พร้อมเปิดอ่านทุกเล่ม</p>
-              </div>
-
-              <div className="bg-white border border-[#e2dfd5] rounded-3xl p-5 shadow-xs">
-                <div className="flex items-center justify-between text-[#755a47] mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider">ยอดเปิดอ่านสะสมทั้งหมด</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">คนอ่านจริงทั้งหมด (Unique)</span>
                   <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                     </svg>
                   </div>
                 </div>
-                <h3 className="text-3xl font-extrabold text-[#17221c]">{totalGlobalViews.toLocaleString()} ครั้ง</h3>
-                <p className="text-[11px] text-emerald-700 font-semibold mt-1">จากผู้สนใจทั่วโลก</p>
+                <h3 className="text-3xl font-extrabold text-[#17221c]">
+                  {(globalReaderMetrics.totalUniqueReaders || totalGlobalViews).toLocaleString()} คน
+                </h3>
+                <p className="text-[11px] text-emerald-700 font-semibold mt-1">
+                  นับรายคน/รายเครื่อง ไม่นับซ้ำ
+                </p>
               </div>
 
+              {/* Card 2: Returning Readers & Loyalty Ratio */}
+              <div className="bg-white border border-[#e2dfd5] rounded-3xl p-5 shadow-xs">
+                <div className="flex items-center justify-between text-[#755a47] mb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider">คนเดิมกลับมาอ่านซ้ำ (Returning)</span>
+                  <div className="p-2 rounded-xl bg-amber-50 text-amber-700">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                  </div>
+                </div>
+                <h3 className="text-3xl font-extrabold text-amber-950">
+                  {globalReaderMetrics.returningReaders.toLocaleString()} คน
+                </h3>
+                <div className="flex items-center gap-1.5 mt-1 text-[11px] text-[#6e746f]">
+                  <span className="font-bold text-amber-800">
+                    {globalReaderMetrics.returnRatePercent}%
+                  </span>
+                  <span>ผู้อ่านประจำที่เปิดดูซ้ำ</span>
+                </div>
+              </div>
+
+              {/* Card 3: Total Reading Time */}
               <div className="bg-white border border-[#e2dfd5] rounded-3xl p-5 shadow-xs">
                 <div className="flex items-center justify-between text-[#755a47] mb-2">
                   <span className="text-xs font-bold uppercase tracking-wider">เวลาอ่านสะสมรวมทุกเล่ม</span>
-                  <div className="p-2 rounded-xl bg-amber-50 text-amber-700">
+                  <div className="p-2 rounded-xl bg-purple-50 text-purple-700">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -313,10 +365,11 @@ function AnalyticsDashboardContent() {
                 <p className="text-[11px] text-[#6e746f] mt-1">เวลาที่ผู้อ่านใช้กับแบรนด์คุณ</p>
               </div>
 
+              {/* Card 4: Top Performing Book */}
               <div className="bg-white border border-[#e2dfd5] rounded-3xl p-5 shadow-xs">
                 <div className="flex items-center justify-between text-[#755a47] mb-2">
                   <span className="text-xs font-bold uppercase tracking-wider">เล่มยอดนิยมอันดับ 1</span>
-                  <div className="p-2 rounded-xl bg-purple-50 text-purple-700">
+                  <div className="p-2 rounded-xl bg-[#243129]/5 text-[#243129]">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.004 0V5.625c0-.621-.504-1.125-1.125-1.125h-3.75c-.621 0-1.125.504-1.125 1.125v8.625" />
                     </svg>
@@ -325,8 +378,8 @@ function AnalyticsDashboardContent() {
                 <h3 className="text-base font-extrabold text-[#17221c] truncate" title={topCatalog?.displayTitle}>
                   {topCatalog ? topCatalog.displayTitle : '-'}
                 </h3>
-                <p className="text-[11px] text-purple-700 font-bold mt-1">
-                  {topCatalog ? `${topCatalog.totalViews} วิว (${formatDuration(topCatalog.totalDurationSeconds)})` : 'ยังไม่มีสถิติ'}
+                <p className="text-[11px] text-[#243129] font-bold mt-1">
+                  {topCatalog ? `${topCatalog.uniqueReaders || topCatalog.totalViews} คนอ่าน (${formatDuration(topCatalog.totalDurationSeconds)})` : 'ยังไม่มีสถิติ'}
                 </p>
               </div>
             </div>
@@ -336,7 +389,7 @@ function AnalyticsDashboardContent() {
               <div className="p-6 border-b border-[#e2dfd5] flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-bold text-[#17221c]">ตารางสรุปสถิติเปรียบเทียบรายเล่ม</h3>
-                  <p className="text-xs text-[#6e746f] mt-0.5">คลิกที่ปุ่ม &quot;เจาะลึกสถิติเล่มนี้&quot; เพื่อดูกราฟรายหน้าของเล่มนั้นๆ</p>
+                  <p className="text-xs text-[#6e746f] mt-0.5">วิเคราะห์จำนวนคนอ่านจริง (Unique) และคนเดิมที่กลับมาอ่านซ้ำในแต่ละเล่ม</p>
                 </div>
               </div>
 
@@ -350,10 +403,10 @@ function AnalyticsDashboardContent() {
                     <thead className="bg-[#fbfaf8] border-b border-[#e2dfd5] text-[#755a47] font-bold uppercase tracking-wider text-[11px]">
                       <tr>
                         <th className="py-3.5 px-6">ชื่อแค็ตตาล็อก</th>
-                        <th className="py-3.5 px-4 text-center">ขนาดไฟล์</th>
-                        <th className="py-3.5 px-4 text-center">ยอดเปิดอ่านรวม</th>
+                        <th className="py-3.5 px-4 text-center">คนอ่านจริง (Unique)</th>
+                        <th className="py-3.5 px-4 text-center">คนเดิมกลับมาซ้ำ</th>
+                        <th className="py-3.5 px-4 text-center">ยอดเปิดรวม (Views)</th>
                         <th className="py-3.5 px-4 text-center">เวลาอ่านสะสม</th>
-                        <th className="py-3.5 px-4 text-center">เวลาเฉลี่ย/ครั้ง</th>
                         <th className="py-3.5 px-4 text-center">หน้า Hot Page</th>
                         <th className="py-3.5 px-6 text-right">การจัดการ</th>
                       </tr>
@@ -384,20 +437,22 @@ function AnalyticsDashboardContent() {
                               </div>
                             </div>
                           </td>
-                          <td className="py-4 px-4 text-center font-mono text-[#6e746f]">
-                            {formatSize(cat.size)}
-                          </td>
                           <td className="py-4 px-4 text-center font-bold text-sm text-emerald-800">
-                            {cat.totalViews.toLocaleString()} วิว
+                            {(cat.uniqueReaders || cat.totalViews).toLocaleString()} คน
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-900 text-[11px] font-bold border border-amber-200">
+                              🔄 {cat.returningCount || 0} คน ({cat.returnRate || 0}%)
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-center font-mono text-[#6e746f]">
+                            {cat.totalViews.toLocaleString()} ครั้ง
                           </td>
                           <td className="py-4 px-4 text-center font-medium text-[#17221c]">
                             {formatDuration(cat.totalDurationSeconds)}
                           </td>
-                          <td className="py-4 px-4 text-center font-mono text-[#6e746f]">
-                            {cat.avgDurationSeconds} วินาที
-                          </td>
                           <td className="py-4 px-4 text-center">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 text-[11px] font-bold border border-amber-200">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-900 text-[11px] font-bold border border-orange-200">
                               🔥 หน้า {cat.topPage}
                             </span>
                           </td>
@@ -439,7 +494,7 @@ function AnalyticsDashboardContent() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-bold border border-emerald-200">
-                      เจาะลึกสถิติรายหน้า
+                      เจาะลึกสถิติรายหน้า &amp; คนอ่านจริง
                     </span>
                     <span className="text-xs text-[#6e746f] font-mono">
                       ขนาด: {formatSize(currentCatalog?.size)}
@@ -480,7 +535,7 @@ function AnalyticsDashboardContent() {
             {statsLoading ? (
               <div className="py-20 text-center">
                 <div className="w-8 h-8 border-3 border-[#243129] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                <p className="text-xs font-bold text-[#755a47]">กำลังวิเคราะห์ข้อมูลรายหน้าของเล่มนี้...</p>
+                <p className="text-xs font-bold text-[#755a47]">กำลังวิเคราะห์ข้อมูลรายหน้าและคนอ่านจริงของเล่มนี้...</p>
               </div>
             ) : pageStats.length === 0 ? (
               <div className="bg-white border border-dashed border-[#d9d7cd] rounded-3xl p-16 text-center max-w-lg mx-auto">
@@ -489,47 +544,76 @@ function AnalyticsDashboardContent() {
                 </svg>
                 <h3 className="text-base font-bold text-[#17221c]">ยังไม่มีข้อมูลการเปิดอ่านสำหรับเล่มนี้</h3>
                 <p className="text-xs text-[#6e746f] mt-1.5 leading-relaxed">
-                  เมื่อคุณแชร์ลิงก์ให้ผู้อ่านเปิดดู ระบบจะเริ่มตรวจจับระยะเวลาที่คนเปิดค้างไว้ในแต่ละหน้าอัตโนมัติทันที
+                  เมื่อคุณแชร์ลิงก์ให้ผู้อ่านเปิดดู ระบบจะเริ่มตรวจจับคนอ่านจริง (Unique Readers) และเวลาที่คนเปิดค้างไว้ในแต่ละหน้าทันที
                 </p>
               </div>
             ) : (
               <>
-                {/* 4 Single Book KPI Cards */}
+                {/* 4 Single Book KPI Cards (Featuring Unique & Returning Readers!) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Hot Page */}
+                  {/* Card 1: Unique Readers */}
+                  <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-300 rounded-3xl p-5 shadow-xs">
+                    <div className="flex items-center justify-between text-emerald-900 mb-2">
+                      <span className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1">
+                        <span>👥</span> คนอ่านจริง (Unique Readers)
+                      </span>
+                    </div>
+                    <h3 className="text-3xl font-extrabold text-emerald-950">
+                      {(singleBookReaders.totalUniqueReaders || totalBookViews).toLocaleString()} คน
+                    </h3>
+                    <p className="text-xs text-emerald-800 font-semibold mt-1">
+                      นับรายคนจริง ไม่นับซ้ำยอดรีเฟรช
+                    </p>
+                  </div>
+
+                  {/* Card 2: Returning vs New Reader Ratio */}
                   <div className="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300 rounded-3xl p-5 shadow-xs">
                     <div className="flex items-center justify-between text-amber-900 mb-2">
                       <span className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1">
-                        <span>🔥</span> หน้าคนสนใจมากที่สุด (Hot Page)
+                        <span>🔄</span> คนเดิมกลับมาอ่านซ้ำ
                       </span>
                     </div>
                     <h3 className="text-3xl font-extrabold text-amber-950">
+                      {singleBookReaders.returningReaders.toLocaleString()} คน
+                    </h3>
+                    <div className="mt-1 flex items-center justify-between text-xs font-semibold text-amber-900">
+                      <span>คนเดิม: {singleBookReaders.returnRatePercent}%</span>
+                      <span>คนใหม่: {100 - singleBookReaders.returnRatePercent}%</span>
+                    </div>
+                    {/* Visual Ratio Progress Bar */}
+                    <div className="mt-1.5 w-full bg-amber-200/60 rounded-full h-1.5 overflow-hidden flex">
+                      <div
+                        style={{ width: `${singleBookReaders.returnRatePercent}%` }}
+                        className="bg-amber-600 h-full"
+                        title="คนเดิมที่กลับมาอ่านซ้ำ"
+                      />
+                      <div
+                        style={{ width: `${100 - singleBookReaders.returnRatePercent}%` }}
+                        className="bg-emerald-500 h-full"
+                        title="ผู้อ่านใหม่"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Card 3: Hot Page */}
+                  <div className="bg-gradient-to-br from-orange-500/10 via-orange-500/5 to-transparent border border-orange-300 rounded-3xl p-5 shadow-xs">
+                    <div className="flex items-center justify-between text-orange-900 mb-2">
+                      <span className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1">
+                        <span>🔥</span> หน้าคนสนใจสูงสุด (Hot Page)
+                      </span>
+                    </div>
+                    <h3 className="text-3xl font-extrabold text-orange-950">
                       หน้า {hotPage?.page_number}
                     </h3>
-                    <p className="text-xs text-amber-800 font-semibold mt-1">
+                    <p className="text-xs text-orange-800 font-semibold mt-1">
                       อ่านเฉลี่ย {hotPage?.avg_duration_seconds} วินาที / ครั้ง
                     </p>
                   </div>
 
-                  {/* Most Viewed Page */}
-                  <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-300 rounded-3xl p-5 shadow-xs">
-                    <div className="flex items-center justify-between text-emerald-900 mb-2">
-                      <span className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1">
-                        <span>👁️</span> หน้าที่เปิดดูบ่อยที่สุด
-                      </span>
-                    </div>
-                    <h3 className="text-3xl font-extrabold text-emerald-950">
-                      หน้า {mostViewedPage?.page_number}
-                    </h3>
-                    <p className="text-xs text-emerald-800 font-semibold mt-1">
-                      ยอดเปิดดู {mostViewedPage?.view_count} ครั้ง
-                    </p>
-                  </div>
-
-                  {/* Avg Duration Per Reader */}
+                  {/* Card 4: Avg Session Duration */}
                   <div className="bg-white border border-[#e2dfd5] rounded-3xl p-5 shadow-xs">
                     <div className="flex items-center justify-between text-[#755a47] mb-2">
-                      <span className="text-xs font-bold uppercase tracking-wider">เวลาอ่านเฉลี่ยต่อคน</span>
+                      <span className="text-xs font-bold uppercase tracking-wider">เวลาเฉลี่ยต่อผู้อ่าน</span>
                       <div className="p-2 rounded-xl bg-[#243129]/5 text-[#243129]">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -541,24 +625,6 @@ function AnalyticsDashboardContent() {
                     </h3>
                     <p className="text-xs text-[#6e746f] mt-1">
                       รวมเวลาอ่าน {formatDuration(totalBookDuration)}
-                    </p>
-                  </div>
-
-                  {/* Total Reads */}
-                  <div className="bg-white border border-[#e2dfd5] rounded-3xl p-5 shadow-xs">
-                    <div className="flex items-center justify-between text-[#755a47] mb-2">
-                      <span className="text-xs font-bold uppercase tracking-wider">ยอดวิวเปิดหน้าสะสม</span>
-                      <div className="p-2 rounded-xl bg-purple-50 text-purple-700">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
-                        </svg>
-                      </div>
-                    </div>
-                    <h3 className="text-3xl font-extrabold text-[#17221c]">
-                      {totalBookViews.toLocaleString()} ครั้ง
-                    </h3>
-                    <p className="text-xs text-[#6e746f] mt-1">
-                      จากจำนวนทั้งหมด {pageStats.length} หน้า
                     </p>
                   </div>
                 </div>
@@ -753,4 +819,3 @@ export default function AnalyticsDashboardPage() {
     </Suspense>
   );
 }
-
