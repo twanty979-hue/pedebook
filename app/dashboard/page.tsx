@@ -796,83 +796,38 @@ export default function DashboardPage() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-8 md:px-8 relative z-10">
-        {/* ── Welcome Heading & Stats ── */}
-        <div className="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+        {/* ── Sleek Minimalist Header ── */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-medium tracking-tight">
-              แผงควบคุมระบบ{" "}
-              <span className="font-serif italic text-[#9a7257]">
-                แดชบอร์ด
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#17221c]">
+                แค็ตตาล็อกของฉัน
+              </h1>
+              <span className="px-3 py-1 rounded-full bg-[#243129]/5 text-[#243129] text-xs font-bold border border-[#243129]/10">
+                {catalogs.length} เล่ม
               </span>
-            </h1>
-            <p className="mt-2 text-sm text-[#6e746f]">
-              จัดการสมุดดิจิทัลและเผยแพร่แค็ตตาล็อกของคุณแบบแยกข้อมูลเฉพาะบัญชี
+              <span className="hidden sm:inline-block px-3 py-1 rounded-full bg-white border border-[#e2dfd5] text-[#6e746f] text-xs font-mono">
+                {formatSize(totalSize)}
+              </span>
+            </div>
+            <p className="mt-1 text-xs sm:text-sm text-[#6e746f]">
+              จัดการและเผยแพร่สมุดดิจิทัล 3D Flipbook ของคุณ
             </p>
           </div>
 
           <button
             onClick={() => setUploadModalOpen(true)}
-            className="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-[#243129] text-[#f7f5f0] shadow-md hover:bg-[#314238] hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer font-bold text-sm tracking-wide shrink-0 border border-[#3b4d41]"
+            className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#243129] text-[#f7f5f0] shadow-md hover:bg-[#314238] hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer font-bold text-sm tracking-wide shrink-0 border border-[#3b4d41]"
           >
-            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-            </span>
-            <span>+ สร้างแค็ตตาล็อกใหม่</span>
+            <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            <span>สร้างแค็ตตาล็อกใหม่</span>
           </button>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
-          <div className="bg-white/70 border border-[#e2dfd5] rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-[#755a47]">แค็ตตาล็อกทั้งหมด</p>
-              <h3 className="text-3xl font-bold mt-1 text-[#17221c]">{catalogs.length} เล่ม</h3>
-              <p className="text-[10px] text-emerald-700 mt-1 font-semibold">สร้างได้ไม่จำกัดจำนวนเล่ม (Unlimited)</p>
-            </div>
-            <div className="text-[#243129] bg-[#243129]/5 p-3 rounded-xl">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </div>
-          </div>
-          <div className="bg-white/70 border border-[#e2dfd5] rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition">
-            <div className="w-full mr-4">
-              <p className="text-xs font-bold uppercase tracking-wider text-[#755a47]">พื้นที่จัดเก็บรวม</p>
-              <h3 className="text-3xl font-bold mt-1 text-[#17221c]">{formatSize(totalSize)}</h3>
-              <p className="text-[10px] text-emerald-700 mt-1 font-semibold">คลาวด์ความเร็วสูง CDN (ไม่จำกัด)</p>
-            </div>
-            <div className="text-[#9a7257] bg-[#9a7257]/5 p-3 rounded-xl shrink-0">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-              </svg>
-            </div>
-          </div>
-          <div className="bg-white/70 border border-[#e2dfd5] rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-[#755a47]">สิทธิ์การใช้งาน</p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-lg font-bold text-[#17221c]">Full Access</span>
-                <span className="text-[10px] font-bold bg-[#eef3f0] text-emerald-700 px-2 py-0.5 rounded-full">เปิดใช้เต็มระบบ</span>
-              </div>
-              <p className="text-[11px] text-[#6e746f] mt-1">ใช้งานได้ทุกฟีเจอร์ สร้างยอดขายได้ไม่จำกัด</p>
-            </div>
-            <div className="text-emerald-600 bg-emerald-50 p-3 rounded-xl shrink-0">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
         {/* ── Catalog Grid (Full Width) ── */}
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#755a47]">
-              สมุดภาพและ Catalog ที่มีอยู่
-            </h2>
-          </div>
+        <div className="mt-4">
 
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
