@@ -155,18 +155,18 @@ export function validateUploadLimits(
   _currentCatalogCount: number,
   _currentTotalSizeBytes: number,
   newFileSizeBytes: number,
-  plan: PlanConfig = PLANS.free
+  _plan: PlanConfig = PLANS.free
 ): { allowed: boolean; reason?: string } {
   const newFileSizeMb = newFileSizeBytes / (1024 * 1024);
 
-  // ตรวจสอบขนาดไฟล์เดี่ยวตามเพดานของแพลน
-  if (newFileSizeMb > plan.maxFileSizeMb) {
+  // ป้องกันเฉพาะไฟล์ที่ใหญ่เกิน 1,000 MB (1 GB) เพื่อไม่ให้กระทบ Browser Memory
+  if (newFileSizeMb > 1000) {
     return {
       allowed: false,
-      reason: `ขนาดไฟล์ (${newFileSizeMb.toFixed(1)} MB) เกินขนาดสูงสุดที่แพ็กเกจ ${plan.nameTh} อนุญาต (${plan.maxFileSizeMb} MB/เล่ม) ครับ`,
+      reason: `ไฟล์มีขนาดใหญ่เกิน 1,000 MB (1 GB) ครับ แนะนำแบ่งไฟล์หรือบีบอัดก่อนอัปโหลดครับ`,
     };
   }
 
-  // แพลนฟรีสามารถอัปโหลดเกิน 100 MB ได้ แต่ระบบจะติดโฆษณาให้อัตโนมัติ
+  // อัปโหลดได้ไม่จำกัดขนาด! หากเกิน 100 MB ระบบหลังบ้าน (Supabase Trigger) จะติดโฆษณา 5 วิให้อัตโนมัติ
   return { allowed: true };
 }
