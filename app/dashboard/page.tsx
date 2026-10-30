@@ -111,10 +111,67 @@ export default function DashboardPage() {
   const [editAllowIndexing, setEditAllowIndexing] = useState(false);
   const [bgUploading, setBgUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isWindowDragging, setIsWindowDragging] = useState(false);
 
   const replaceInputRef = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // ดักจับการลากและวางไฟล์ PDF บนหน้าจอทั้งหมด (Drag & Drop Anywhere)
+  useEffect(() => {
+    let dragCounter = 0;
+
+    const handleDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      if (e.dataTransfer?.types.includes('Files')) {
+        dragCounter++;
+        setIsWindowDragging(true);
+      }
+    };
+
+    const handleDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounter--;
+      if (dragCounter <= 0) {
+        dragCounter = 0;
+        setIsWindowDragging(false);
+      }
+    };
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounter = 0;
+      setIsWindowDragging(false);
+      const droppedFiles = e.dataTransfer?.files;
+      if (droppedFiles && droppedFiles.length > 0) {
+        const targetPdf = Array.from(droppedFiles).find(
+          (f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
+        );
+        if (targetPdf) {
+          setFile(targetPdf);
+          setUploadModalOpen(true);
+        } else {
+          alert('กรุณาเลือกไฟล์ PDF เท่านั้นครับ');
+        }
+      }
+    };
+
+    window.addEventListener('dragenter', handleDragEnter);
+    window.addEventListener('dragleave', handleDragLeave);
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('drop', handleDrop);
+
+    return () => {
+      window.removeEventListener('dragenter', handleDragEnter);
+      window.removeEventListener('dragleave', handleDragLeave);
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('drop', handleDrop);
+    };
+  }, []);
 
   useEffect(() => {
     if (editModal) {
@@ -643,6 +700,21 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#f6f4ee] font-sans text-[#17221c] relative overflow-hidden pb-20">
+      {/* ── Global Drag & Drop Overlay ── */}
+      {isWindowDragging && (
+        <div className="fixed inset-0 z-50 bg-[#243129]/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-white pointer-events-none transition-all duration-300">
+          <div className="border-3 border-dashed border-emerald-400 rounded-3xl p-12 max-w-lg w-full flex flex-col items-center justify-center text-center bg-[#17221c]/70 shadow-2xl">
+            <div className="w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center mb-4 animate-bounce">
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">ปล่อยไฟล์ PDF ตรงนี้ได้เลย!</h2>
+            <p className="text-sm text-emerald-200">ระบบจะนำไฟล์เข้าสู่หน้าสร้างแค็ตตาล็อก 3D อัตโนมัติทันที</p>
+          </div>
+        </div>
+      )}
+
       {/* เอฟเฟกต์แสงไฟเบลอ */}
       <div className="absolute top-[-10%] left-[-15%] w-[600px] h-[600px] rounded-full bg-[#d3b894]/20 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#243129]/5 blur-[100px] pointer-events-none" />
@@ -750,16 +822,14 @@ export default function DashboardPage() {
 
           <button
             onClick={() => setUploadModalOpen(true)}
-            className="flex items-center justify-center h-12 w-12 rounded-2xl bg-[#243129] text-[#e8dcc7] shadow-md hover:bg-[#314238] hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0"
-            title="เพิ่มแค็ตตาล็อกใหม่"
+            className="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-[#243129] text-[#f7f5f0] shadow-md hover:bg-[#314238] hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer font-bold text-sm tracking-wide shrink-0 border border-[#3b4d41]"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              {/* รูปเล่มสมุดกาง */}
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              {/* วงกลมสัญลักษณ์เครื่องหมายบวกซ้อนทับมุมบนขวา */}
-              <circle cx="18" cy="6" r="4.5" fill="#243129" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M18 4.5v3M16.5 6h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+            </span>
+            <span>+ สร้างแค็ตตาล็อกใหม่</span>
           </button>
         </div>
 
@@ -817,34 +887,48 @@ export default function DashboardPage() {
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white border border-[#e2dfd5] rounded-2xl h-60 animate-pulse" />
+                <div key={i} className="bg-white border border-[#e2dfd5] rounded-3xl h-[460px] animate-pulse" />
               ))}
-            </div>
-          ) : catalogs.length === 0 ? (
-            <div className="bg-white/50 border border-dashed border-[#d9d7cd] rounded-3xl p-12 text-center max-w-xl mx-auto">
-              <svg className="w-12 h-12 text-[#d9d7cd] mx-auto mb-3" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.008 1.24l.885 1.77a2.25 2.25 0 002.007 1.24h1.98a2.25 2.25 0 002.007-1.24l.885-1.77a2.25 2.25 0 012.007-1.24h3.86m-18 0h18a2.25 2.25 0 012.25 2.25v3.5A2.25 2.25 0 0119.5 21h-15a2.25 2.25 0 01-2.25-2.25v-3.5a2.25 2.25 0 012.25-2.25zm18-9v8.25A2.25 2.25 0 0118 15H6a2.25 2.25 0 01-2.25-2.25V4.5A2.25 2.25 0 016 2.25h12a2.25 2.25 0 012.25 2.25z" />
-              </svg>
-              <p className="text-sm font-bold text-[#6e746f]">
-                ยังไม่มีแค็ตตาล็อกในระบบนี้เลยครับ
-              </p>
-              <p className="text-xs text-[#6e746f] mt-1">
-                คลิกปุ่มเครื่องหมายบวก (+) ด้านบน เพื่อเริ่มต้นอัปโหลดสมุดเล่มแรกของคุณได้เลย!
-              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {/* การ์ดช่องอัปโหลดสมุดใหม่ (Upload Slot Card เป็นอันดับแรกเสมอ) */}
+              <div
+                onClick={() => setUploadModalOpen(true)}
+                className="group relative bg-white/60 hover:bg-white border-2 border-dashed border-[#d9d7cd] hover:border-emerald-600 rounded-3xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 min-h-[460px]"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-emerald-50 group-hover:bg-emerald-600 flex items-center justify-center text-emerald-700 group-hover:text-white transition-all duration-300 mb-4 shadow-xs group-hover:scale-110">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-bold text-[#17221c] group-hover:text-emerald-800 transition-colors">
+                  + เพิ่มสมุดใหม่
+                </h3>
+                <p className="text-xs text-[#6e746f] mt-1.5 leading-relaxed max-w-[200px]">
+                  คลิกเพื่อเลือกไฟล์ หรือลากไฟล์ PDF มาวางตรงนี้
+                </p>
+                <div className="mt-5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200">
+                  <span>⚡ ไม่จำกัดขนาดไฟล์</span>
+                </div>
+              </div>
+
+              {/* รายการสมุดแค็ตตาล็อกทั้งหมด */}
               {catalogs.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-white border border-[#e2dfd5] rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between h-[390px]"
+                  className="bg-white border border-[#e2dfd5] rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between min-h-[460px]"
                 >
-                  {/* ส่วนแสดง Book 3D Mockup แบบลอยได้ (85% ของการ์ด) */}
-                  <div className="h-[325px] bg-[#fbfaf8] border-b border-[#e2dfd5]/40 flex items-center justify-center p-4 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-radial-gradient from-transparent to-black/[0.01]" />
-                    
-                    {/* ตัวสมุด 3D เด้งลอยเมื่อชี้เมาส์ ขยายใหญ่เต็มๆ ตา */}
-                    <div className="relative w-[204px] h-[270px] rounded-r-xl border-l-[4px] border-[#9a7257] bg-[#1e2a22] shadow-[-8px_10px_20px_rgba(36,49,41,0.14)] overflow-hidden transition-all duration-300 hover:-translate-y-2.5 hover:shadow-[-12px_18px_28px_rgba(36,49,41,0.22)] hover:scale-[1.03]">
+                  {/* ส่วนแสดง Book 3D Mockup - คลิกเปิดสมุดได้ทันที */}
+                  <div
+                    onClick={() => window.open(`/catalog/${item.slug}`, '_blank')}
+                    className="group/cover relative h-[280px] bg-[#fbfaf8] border-b border-[#e2dfd5]/60 flex items-center justify-center p-4 cursor-pointer overflow-hidden"
+                    title="คลิกเพื่อเปิดอ่านสมุด 3D Flipbook ในแท็บใหม่"
+                  >
+                    <div className="absolute inset-0 bg-radial-gradient from-transparent to-black/[0.02]" />
+
+                    {/* ตัวสมุด 3D เด้งลอยเมื่อชี้เมาส์ */}
+                    <div className="relative w-[180px] h-[240px] rounded-r-xl border-l-[4px] border-[#9a7257] bg-[#1e2a22] shadow-[-8px_10px_22px_rgba(36,49,41,0.15)] overflow-hidden transition-all duration-300 group-hover/cover:-translate-y-2 group-hover/cover:shadow-[-12px_20px_32px_rgba(36,49,41,0.25)] group-hover/cover:scale-[1.04]">
                       <BookCover
                         id={item.id}
                         slug={item.slug}
@@ -852,128 +936,151 @@ export default function DashboardPage() {
                         title={item.displayTitle}
                         coverImage={item.coverImage}
                         updatedAt={item.updatedAt}
-                        width={204}
+                        width={180}
                       />
+                    </div>
+
+                    {/* Hover Badge บนหน้าปก */}
+                    <div className="absolute bottom-3 inset-x-4 flex justify-center opacity-0 group-hover/cover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                      <span className="inline-flex items-center gap-1.5 bg-[#243129]/90 backdrop-blur-md text-[#f7f5f0] text-xs font-bold px-3.5 py-1.5 rounded-full shadow-lg border border-white/20">
+                        <span>คลิกเปิดอ่านสมุด</span>
+                        <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V10.5M10.5 13.5L21 3M21 3h-5.25M21 3v5.25" />
+                        </svg>
+                      </span>
                     </div>
                   </div>
 
-                  {/* รายละเอียด และปุ่มสั่งการขนาดเล็ก (15% ของการ์ด) */}
-                  <div className="h-[65px] px-4 py-2.5 bg-white flex items-center justify-between gap-3">
-                    <div className="flex flex-col min-w-0">
-                      <h3 className="text-xs font-bold text-[#17221c] truncate max-w-[100px] sm:max-w-[120px] leading-tight" title={item.fileName.replace(/-/g, ' ')}>
-                        {item.fileName.replace(/-/g, ' ').replace(/\.pdf$/i, '')}
-                      </h3>
-                      <p className="text-[9px] text-[#6e746f] mt-0.5 font-mono leading-none">
-                        {formatSize(item.size)}
+                  {/* ข้อมูลชื่อและปุ่มสั่งการหลัก */}
+                  <div className="p-4 pb-3 flex-1 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <h3 className="text-sm font-bold text-[#17221c] truncate" title={item.displayTitle || item.fileName.replace(/-/g, ' ')}>
+                          {item.displayTitle || item.fileName.replace(/-/g, ' ').replace(/\.pdf$/i, '')}
+                        </h3>
+                        <a
+                          href={`/catalog/${item.slug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="shrink-0 p-1 rounded-lg bg-[#243129]/5 text-[#243129] hover:bg-[#243129] hover:text-white transition-colors"
+                          title="เปิดอ่านสมุดในแท็บใหม่"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V10.5M10.5 13.5L21 3M21 3h-5.25M21 3v5.25" />
+                          </svg>
+                        </a>
+                      </div>
+                      <p className="text-xs text-[#6e746f] font-mono">
+                        ขนาด: {formatSize(item.size)}
                       </p>
-                      <a
-                        href={`/catalog/${item.slug}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[9px] font-bold text-[#243129] hover:text-[#314238] flex items-center gap-0.5 mt-1 hover:underline cursor-pointer"
-                      >
-                        <span>เปิดอ่านสมุด</span>
-                        <svg className="w-2.5 h-2.5 text-[#6e746f]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V10.5M10.5 13.5L21 3M21 3h-5.25M21 3v5.25" />
-                        </svg>
-                      </a>
                     </div>
 
-                    <div className="flex items-center gap-1 shrink-0">
-                      {/* ปุ่ม QR Code ขนาดเล็ก */}
+                    {/* ปุ่มหลัก 2 ปุ่มเด่นชัด: คัดลอกลิงก์ & QR Code */}
+                    <div className="grid grid-cols-2 gap-2 mt-4">
+                      <button
+                        onClick={() => copyLink(item.slug)}
+                        className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          copied === item.slug
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'bg-[#243129] text-[#f7f5f0] hover:bg-[#314238] active:scale-95 shadow-xs'
+                        }`}
+                      >
+                        {copied === item.slug ? (
+                          <>
+                            <svg className="w-4 h-4 text-emerald-200" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                            <span>คัดลอกแล้ว!</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4 text-emerald-300" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                            </svg>
+                            <span>คัดลอกลิงก์</span>
+                          </>
+                        )}
+                      </button>
+
                       <button
                         onClick={() => setQrModal({ slug: item.slug, fileName: item.fileName })}
-                        className="p-1 rounded-lg border border-[#e2dfd5] bg-white text-[#6e746f] hover:text-[#17221c] hover:bg-neutral-50 transition cursor-pointer"
-                        title="QR Code"
+                        className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-[#d9d7cd] bg-[#fbfaf8] hover:bg-neutral-100 text-[#17221c] text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-xs"
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-[#755a47]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <rect x="3" y="3" width="7" height="7" rx="1" />
                           <rect x="14" y="3" width="7" height="7" rx="1" />
                           <rect x="14" y="14" width="7" height="7" rx="1" />
                           <rect x="3" y="14" width="7" height="7" rx="1" />
                         </svg>
-                      </button>
-
-                      {/* ปุ่มสถิติการเปิดอ่านรายหน้า (Page Analytics) */}
-                      <button
-                        onClick={() => setAnalyticsModal(item)}
-                        className="p-1 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:text-emerald-950 hover:bg-emerald-100 transition cursor-pointer"
-                        title="สถิติเปิดอ่านรายหน้า (Page Analytics)"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-                        </svg>
-                      </button>
-
-                      {/* ปุ่มตั้งค่าธีมพื้นหลัง/ข้อมูล ขนาดเล็ก */}
-                      <button
-                        onClick={() => setEditModal(item)}
-                        className="p-1 rounded-lg border border-[#e2dfd5] bg-white text-[#6e746f] hover:text-[#17221c] hover:bg-neutral-50 transition cursor-pointer"
-                        title="ตั้งค่าแค็ตตาล็อก"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.43l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </button>
-
-                      {/* ปุ่มคัดลอกลิงก์ขนาดเล็ก */}
-                      <button
-                        onClick={() => copyLink(item.slug)}
-                        className={`p-1 rounded-lg border transition cursor-pointer ${
-                          copied === item.slug
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                            : 'border-[#e2dfd5] bg-white text-[#6e746f] hover:text-[#17221c] hover:bg-neutral-50'
-                        }`}
-                        title="คัดลอกลิงก์"
-                      >
-                        {copied === item.slug ? (
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                          </svg>
-                        ) : (
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
-                          </svg>
-                        )}
-                      </button>
-
-                      {/* ปุ่มอัปเดตไฟล์ขนาดเล็ก */}
-                      <button
-                        disabled={replacing === item.id}
-                        onClick={() => replaceInputRef.current[item.id]?.click()}
-                        className="p-1 rounded-lg border border-[#e2dfd5] bg-white text-[#6e746f] hover:text-[#b45309] hover:bg-[#fffbeb] transition cursor-pointer disabled:opacity-50"
-                        title="เปลี่ยนไฟล์ PDF"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                        </svg>
-                      </button>
-                      <input
-                        type="file"
-                        accept="application/pdf"
-                        style={{ display: 'none' }}
-                        ref={(el) => {
-                          replaceInputRef.current[item.id] = el;
-                        }}
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) handleReplace(item, f);
-                          e.target.value = '';
-                        }}
-                      />
-
-                      {/* ปุ่มลบขนาดเล็ก */}
-                      <button
-                        className="p-1 rounded-lg border border-red-100 bg-white text-red-500 hover:text-red-700 hover:bg-red-50 transition cursor-pointer"
-                        onClick={() => handleDelete(item)}
-                        title="ลบ Catalog"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
+                        <span>QR Code</span>
                       </button>
                     </div>
+                  </div>
+
+                  {/* แถบเมนูด้านล่างสุด: สถิติ | ตั้งค่า | เปลี่ยนไฟล์ | ลบ */}
+                  <div className="border-t border-[#e2dfd5] bg-[#faf8f5] px-3 py-2.5 flex items-center justify-between text-[#6e746f]">
+                    {/* ปุ่มสถิติ */}
+                    <button
+                      onClick={() => setAnalyticsModal(item)}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-emerald-100 hover:text-emerald-800 text-[11px] font-medium transition cursor-pointer"
+                      title="ดูสถิติการเปิดอ่านรายหน้า"
+                    >
+                      <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                      </svg>
+                      <span>สถิติ</span>
+                    </button>
+
+                    {/* ปุ่มตั้งค่า */}
+                    <button
+                      onClick={() => setEditModal(item)}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-[#e2dfd5]/60 hover:text-[#17221c] text-[11px] font-medium transition cursor-pointer"
+                      title="ตั้งค่าแค็ตตาล็อกและพื้นหลัง"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.43l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>ตั้งค่า</span>
+                    </button>
+
+                    {/* ปุ่มเปลี่ยนไฟล์ */}
+                    <button
+                      disabled={replacing === item.id}
+                      onClick={() => replaceInputRef.current[item.id]?.click()}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-amber-100 hover:text-amber-800 text-[11px] font-medium transition cursor-pointer disabled:opacity-50"
+                      title="เปลี่ยนไฟล์ PDF โดยใช้ลิงก์เดิม"
+                    >
+                      <svg className="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                      </svg>
+                      <span>เปลี่ยนไฟล์</span>
+                    </button>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      style={{ display: 'none' }}
+                      ref={(el) => {
+                        replaceInputRef.current[item.id] = el;
+                      }}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleReplace(item, f);
+                        e.target.value = '';
+                      }}
+                    />
+
+                    {/* ปุ่มลบ */}
+                    <button
+                      onClick={() => handleDelete(item)}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-red-100 hover:text-red-700 text-[11px] font-medium text-red-500 transition cursor-pointer"
+                      title="ลบแค็ตตาล็อกนี้"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <span>ลบ</span>
+                    </button>
                   </div>
                 </div>
               ))}
