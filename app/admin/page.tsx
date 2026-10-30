@@ -931,7 +931,7 @@ export default function AdminPage() {
               <span className="text-sm font-bold text-emerald-700">ออนไลน์ปกติ</span>
             </div>
             <p className="mt-1 text-[11px] text-[#6e746f]">
-              R2 Storage & Firebase เชื่อมต่อสมบูรณ์
+              R2 Storage & Supabase เชื่อมต่อสมบูรณ์
             </p>
           </div>
         </div>

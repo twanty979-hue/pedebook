@@ -10,7 +10,6 @@ export type AuthUser = {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
-  isAnonymous?: boolean;
 };
 
 type NavbarClientProps = {
@@ -61,7 +60,6 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
                 session.user.email?.split('@')[0] ||
                 'User',
               photoURL: session.user.user_metadata?.avatar_url || null,
-              isAnonymous: false,
             });
             setLoading(false);
             return;
@@ -92,7 +90,6 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
               session.user.email?.split('@')[0] ||
               'User',
             photoURL: session.user.user_metadata?.avatar_url || null,
-            isAnonymous: false,
           });
         } else {
           setUser(null);
@@ -160,10 +157,10 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
               )}
               <div className="hidden flex-col text-left sm:flex">
                 <span className="text-xs font-bold leading-tight text-[#17221c]">
-                  {user.displayName || (user.isAnonymous ? 'ผู้ใช้งานทั่วไป' : copy.account)}
+                  {user.displayName || copy.account}
                 </span>
                 <span className="text-[10px] leading-tight text-[#6e746f]">
-                  {user.email || 'Guest Workspace'}
+                  {user.email || ''}
                 </span>
               </div>
             </Link>
@@ -191,14 +188,12 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
               <span>{copy.admin}</span>
             </Link>
 
-            {!user.isAnonymous && (
-              <button
-                onClick={handleSignOut}
-                className="rounded-full border border-[#d9d7cd] px-4 py-1.5 text-xs font-bold text-[#755a47] hover:bg-[#243129] hover:text-[#e8dcc7] hover:border-[#243129] transition-all cursor-pointer"
-              >
-                {copy.signOut}
-              </button>
-            )}
+            <button
+              onClick={handleSignOut}
+              className="rounded-full border border-[#d9d7cd] px-4 py-1.5 text-xs font-bold text-[#755a47] hover:bg-[#243129] hover:text-[#e8dcc7] hover:border-[#243129] transition-all cursor-pointer"
+            >
+              {copy.signOut}
+            </button>
           </div>
         ) : (
           <div className="flex items-center gap-4">

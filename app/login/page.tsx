@@ -206,13 +206,7 @@ export default function LoginPage() {
 
         {mode !== "forgot" && (
           <div className="mb-5">
-            <button
-              type="button"
-              onClick={() => router.push("/dashboard")}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#243129] px-4 py-3.5 text-sm font-bold text-[#e8dcc7] shadow-md transition-all hover:bg-[#314238] active:scale-[0.98] mb-3 cursor-pointer"
-            >
-              <span>🚀 เข้าใช้งานทันที (ไม่ต้องสมัครสมาชิก)</span>
-            </button>
+
 
             <button
               type="button"

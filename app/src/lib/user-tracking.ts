@@ -66,7 +66,7 @@ export async function syncUserProfile(user: AnyUser): Promise<void> {
       .upsert(
         {
           id: user.uid,
-          email: user.email || `${user.uid.slice(0, 12)}@pedebook.guest`,
+          email: user.email || `${user.uid.slice(0, 12)}@pedebook.com`,
           display_name: user.displayName || user.email?.split('@')[0] || 'User',
           avatar_url: user.photoURL || null,
           updated_at: new Date().toISOString(),

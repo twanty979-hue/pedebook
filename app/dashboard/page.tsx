@@ -15,7 +15,6 @@ export interface DashboardUser {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
-  isAnonymous?: boolean;
 }
 
 const BookCover = dynamic(() => import('../components/BookCover'), {
@@ -123,12 +122,17 @@ export default function DashboardPage() {
     }
   }, [editModal]);
 
-  // 1. ตรวจสอบสิทธิ์ (Supabase Auth / Local Guest Workspace)
+  // 1. ตรวจสอบสิทธิ์ (Supabase Auth 100% บังคับล็อกอิน ไม่ใช้ Guest)
   useEffect(() => {
     let isMounted = true;
+    let authSubscription: { unsubscribe: () => void } | undefined;
 
     async function initAuth() {
-      // 1. ตรวจสอบ Supabase Auth ก่อน
+      // ล้างข้อมูล Guest เก่าที่อาจค้างอยู่ในเบราว์เซอร์
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('pedebook_guest_uid');
+      }
+
       if (isSupabaseConfigured()) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
@@ -138,61 +142,60 @@ export default function DashboardPage() {
               email: session.user.email || null,
               displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
               photoURL: session.user.user_metadata?.avatar_url || null,
-              isAnonymous: false,
             };
             setUser(sbUser);
             setAuthLoading(false);
             fetchCatalogs(session.user.id);
             return;
+          } else if (isMounted) {
+            setUser(null);
+            setAuthLoading(false);
+            router.push('/login');
+            return;
           }
 
-          supabase.auth.onAuthStateChange((_event, session) => {
-            if (session?.user && isMounted) {
+          const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (!isMounted) return;
+            if (session?.user) {
               const sbUser: DashboardUser = {
                 uid: session.user.id,
                 email: session.user.email || null,
                 displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
                 photoURL: session.user.user_metadata?.avatar_url || null,
-                isAnonymous: false,
               };
               setUser(sbUser);
               setAuthLoading(false);
               fetchCatalogs(session.user.id);
+            } else {
+              setUser(null);
+              setAuthLoading(false);
+              router.push('/login');
             }
           });
+          authSubscription = data.subscription;
         } catch (sbErr) {
           console.warn('Supabase auth check note:', sbErr);
+          if (isMounted) {
+            setUser(null);
+            setAuthLoading(false);
+            router.push('/login');
+          }
         }
-      }
-
-      // 2. ถ้ายังไม่ล็อกอิน ให้สร้างหรือใช้ Guest Workspace ประจำเครื่อง
-      let guestId = '';
-      if (typeof window !== 'undefined') {
-        guestId = localStorage.getItem('pedebook_guest_uid') || '';
-        if (!guestId) {
-          guestId = 'guest_' + crypto.randomUUID().slice(0, 12);
-          localStorage.setItem('pedebook_guest_uid', guestId);
+      } else {
+        if (isMounted) {
+          setUser(null);
+          setAuthLoading(false);
+          router.push('/login');
         }
-      }
-      const mockGuest: DashboardUser = {
-        uid: guestId || 'guest_user',
-        email: null,
-        displayName: 'ผู้ใช้งานทั่วไป',
-        photoURL: null,
-        isAnonymous: true,
-      };
-      if (isMounted) {
-        setUser(mockGuest);
-        setAuthLoading(false);
-        fetchCatalogs(mockGuest.uid);
       }
     }
 
     initAuth();
     return () => {
       isMounted = false;
+      if (authSubscription) authSubscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
   // 2. ดึงแค็ตตาล็อกแยกตามสิทธิ์ผู้ใช้จาก Supabase REST API
   const fetchCatalogs = async (userId: string) => {
@@ -413,7 +416,7 @@ export default function DashboardPage() {
     }
   };
 
-  // 3. ระบบอัปโหลด R2 + บันทึก Firestore
+  // 3. ระบบอัปโหลด R2 + บันทึก Supabase
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !user) return;
@@ -476,7 +479,7 @@ export default function DashboardPage() {
     }
   };
 
-  // 4. ระบบเปลี่ยนไฟล์ PDF (ลบ R2 เก่า + อัปโหลดใหม่ + อัปเดต Firestore)
+  // 4. ระบบเปลี่ยนไฟล์ PDF (ลบ R2 เก่า + อัปโหลดใหม่ + อัปเดต Supabase)
   const handleReplace = async (item: CatalogItem, newFile: File) => {
     if (!user) return;
 
@@ -576,7 +579,7 @@ export default function DashboardPage() {
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
 
-  if (authLoading) {
+  if (authLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f6f4ee]">
         <div className="flex flex-col items-center gap-3">
