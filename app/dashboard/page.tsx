@@ -847,27 +847,6 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {/* การ์ดช่องอัปโหลดสมุดใหม่ (Upload Slot Card เป็นอันดับแรกเสมอ) */}
-              <div
-                onClick={() => setUploadModalOpen(true)}
-                className="group relative bg-white/60 hover:bg-white border-2 border-dashed border-[#d9d7cd] hover:border-emerald-600 rounded-3xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 min-h-[460px]"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-emerald-50 group-hover:bg-emerald-600 flex items-center justify-center text-emerald-700 group-hover:text-white transition-all duration-300 mb-4 shadow-xs group-hover:scale-110">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                </div>
-                <h3 className="text-base font-bold text-[#17221c] group-hover:text-emerald-800 transition-colors">
-                  + เพิ่มสมุดใหม่
-                </h3>
-                <p className="text-xs text-[#6e746f] mt-1.5 leading-relaxed max-w-[200px]">
-                  คลิกเพื่อเลือกไฟล์ หรือลากไฟล์ PDF มาวางตรงนี้
-                </p>
-                <div className="mt-5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200">
-                  <span>⚡ ไม่จำกัดขนาดไฟล์</span>
-                </div>
-              </div>
-
               {/* รายการสมุดแค็ตตาล็อกทั้งหมด */}
               {catalogs.map((item) => (
                 <div
@@ -1039,6 +1018,27 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ))}
+
+              {/* การ์ดช่องอัปโหลดสมุดใหม่ (Upload Slot Card แสดงต่อท้ายสมุดที่มีอยู่) */}
+              <div
+                onClick={() => setUploadModalOpen(true)}
+                className="group relative bg-white/60 hover:bg-white border-2 border-dashed border-[#d9d7cd] hover:border-emerald-600 rounded-3xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 min-h-[460px]"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-emerald-50 group-hover:bg-emerald-600 flex items-center justify-center text-emerald-700 group-hover:text-white transition-all duration-300 mb-4 shadow-xs group-hover:scale-110">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-bold text-[#17221c] group-hover:text-emerald-800 transition-colors">
+                  + เพิ่มสมุดใหม่
+                </h3>
+                <p className="text-xs text-[#6e746f] mt-1.5 leading-relaxed max-w-[200px]">
+                  คลิกเพื่อเลือกไฟล์ หรือลากไฟล์ PDF มาวางตรงนี้
+                </p>
+                <div className="mt-5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200">
+                  <span>⚡ ไม่จำกัดขนาดไฟล์</span>
+                </div>
+              </div>
             </div>
           )}
         </div>
