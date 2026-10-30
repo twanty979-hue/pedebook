@@ -43,6 +43,7 @@ export const getCatalogBySlug = cache(async (slug: string): Promise<CatalogRecor
           updatedAt: data.updated_at,
           displayTitle: data.title,
           seoDescription: data.seo_description,
+          coverImage: data.cover_image,
           bgType: data.bg_type,
           bgValue: data.bg_value,
           isFloating: data.is_floating,
@@ -83,6 +84,7 @@ export const getIndexableCatalogs = cache(async (): Promise<CatalogRecord[]> => 
             updatedAt: d.updated_at,
             displayTitle: d.title,
             seoDescription: d.seo_description,
+            coverImage: d.cover_image,
             bgType: d.bg_type,
             bgValue: d.bg_value,
             isFloating: d.is_floating,
@@ -101,9 +103,12 @@ export const getIndexableCatalogs = cache(async (): Promise<CatalogRecord[]> => 
 });
 
 export function catalogTitle(catalog: CatalogRecord): string {
-  return catalog.displayTitle?.trim() || catalog.fileName?.replace(/\.pdf$/i, '').trim() || 'แค็ตตาล็อกออนไลน์';
+  return catalog.displayTitle || catalog.fileName?.replace(/\.pdf$/i, '') || 'สมุดภาพและแค็ตตาล็อก';
 }
 
 export function catalogDescription(catalog: CatalogRecord): string {
-  return catalog.seoDescription?.trim() || `อ่าน ${catalogTitle(catalog)} ออนไลน์แบบ Flipbook แชร์ลิงก์และ QR Code ได้ทันที`;
+  return (
+    catalog.seoDescription ||
+    `อ่าน ${catalogTitle(catalog)} ออนไลน์แบบ Flipbook 3 มิติ แชร์ลิงก์และ QR Code ได้ทันที`
+  );
 }

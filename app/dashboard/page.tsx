@@ -20,8 +20,13 @@ export interface DashboardUser {
 const BookCover = dynamic(() => import('../components/BookCover'), {
   ssr: false,
   loading: () => (
-    <div className="flex flex-col items-center justify-center h-full w-full bg-[#243129] text-[#e8dcc7] p-2 text-center select-none">
-      <span className="text-[9px] font-bold tracking-widest animate-pulse">โหลดปก...</span>
+    <div className="w-full h-full bg-gradient-to-br from-[#27382e] via-[#1e2b23] to-[#121c16] text-[#e8dcc7] p-3 flex flex-col justify-between shadow-inner">
+      <div className="absolute left-0 top-0 bottom-0 w-2.5 bg-gradient-to-r from-[#7a5836] via-[#c5a059] to-transparent opacity-90" />
+      <div className="border border-[#c5a059]/40 rounded-sm p-3 flex flex-col justify-between items-center text-center h-full relative z-10">
+        <span className="text-[7px] tracking-[0.25em] font-bold text-[#c5a059] uppercase mt-1">PEDEBOOK</span>
+        <span className="text-[10px] font-serif font-bold text-[#f5eedb] animate-pulse">กำลังจัดเตรียมสมุด...</span>
+        <span className="text-[6.5px] tracking-[0.2em] font-semibold text-[#c5a059]/90 uppercase mb-1">DIGITAL EDITION</span>
+      </div>
     </div>
   ),
 });
@@ -39,6 +44,7 @@ interface CatalogItem {
   isFloating?: boolean;
   displayTitle?: string;
   seoDescription?: string;
+  coverImage?: string;
   isPublic?: boolean;
   allowIndexing?: boolean;
   updatedAt?: string;
@@ -255,6 +261,7 @@ export default function DashboardPage() {
               isFloating: c.is_floating,
               displayTitle: c.title,
               seoDescription: c.seo_description,
+              coverImage: c.cover_image,
               isPublic: c.is_public,
               allowIndexing: c.allow_indexing,
               updatedAt: c.updated_at,
@@ -528,6 +535,11 @@ export default function DashboardPage() {
     try {
       const uploadRes = await uploadFileDirectly(newFile, user.uid, () => {});
 
+      // เคลียร์แคชรูปปกของไฟล์เก่า
+      try {
+        localStorage.removeItem(`pedebook_cover_${item.slug}`);
+      } catch (_) {}
+
       await fetch('/api/delete-file', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -542,6 +554,7 @@ export default function DashboardPage() {
           pdfUrl: uploadRes.url,
           storageKey: uploadRes.key,
           fileSizeBytes: newFile.size,
+          coverImage: null,
         }),
       });
 
@@ -561,7 +574,12 @@ export default function DashboardPage() {
     if (!confirm(`ลบแค็ตตาล็อก "${item.fileName.replace(/-/g, ' ')}" ใช่ไหมครับ? ผู้ใช้ภายนอกจะไม่สามารถเปิดอ่านลิงก์นี้ได้อีก`)) return;
 
     try {
-      // ลบจาก Supabase ผ่าน API
+      // เคลียร์แคชรูปปกของสมุดที่ถูกลบ
+      try {
+        localStorage.removeItem(`pedebook_cover_${item.slug}`);
+      } catch (_) {}
+
+      // ลบจาก Supabase ผ่าน API (ระบบจะลบข้อมูลและเคลียร์แคชให้อัตโนมัติ)
       await fetch(`/api/v1/catalogs/${item.id}`, {
         method: 'DELETE',
       });
@@ -800,8 +818,16 @@ export default function DashboardPage() {
                     <div className="absolute inset-0 bg-radial-gradient from-transparent to-black/[0.01]" />
                     
                     {/* ตัวสมุด 3D เด้งลอยเมื่อชี้เมาส์ ขยายใหญ่เต็มๆ ตา */}
-                    <div className="relative w-[204px] h-[270px] rounded-r-xl border-l-[4px] border-[#9a7257] bg-white shadow-[-8px_10px_20px_rgba(36,49,41,0.14)] overflow-hidden transition-all duration-300 hover:-translate-y-2.5 hover:shadow-[-12px_18px_28px_rgba(36,49,41,0.22)] hover:scale-[1.03]">
-                      <BookCover slug={item.slug} fileName={item.fileName} width={200} />
+                    <div className="relative w-[204px] h-[270px] rounded-r-xl border-l-[4px] border-[#9a7257] bg-[#1e2a22] shadow-[-8px_10px_20px_rgba(36,49,41,0.14)] overflow-hidden transition-all duration-300 hover:-translate-y-2.5 hover:shadow-[-12px_18px_28px_rgba(36,49,41,0.22)] hover:scale-[1.03]">
+                      <BookCover
+                        id={item.id}
+                        slug={item.slug}
+                        fileName={item.fileName}
+                        title={item.displayTitle}
+                        coverImage={item.coverImage}
+                        updatedAt={item.updatedAt}
+                        width={204}
+                      />
                     </div>
                   </div>
 

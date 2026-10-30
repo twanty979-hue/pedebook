@@ -94,6 +94,7 @@ export default async function CatalogPage({ params }: CatalogPageProps) {
         bgValue={catalog.bgValue}
         isFloating={catalog.isFloating}
         adEnabled={Boolean(catalog.adEnabled)}
+        updatedAt={catalog.updatedAt || catalog.lastModified}
       />
     </>
   );

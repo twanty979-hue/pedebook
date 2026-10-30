@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/app/src/lib/supabase/server';
 import { isSupabaseConfigured } from '@/app/src/lib/supabase/client';
+import { clearPdfMemoryCache } from '@/app/api/pdf-proxy/route';
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
   }
 }
 
-// PATCH / PUT: Update catalog metadata (Title, Theme, SEO, Visibility)
+// PATCH / PUT: Update catalog metadata (Title, Theme, SEO, Visibility, CoverImage)
 export async function PATCH(request: NextRequest, { params }: RouteContext) {
   try {
     const { id } = await params;
@@ -53,6 +54,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       pdfUrl,
       storageKey,
       fileSizeBytes,
+      coverImage,
     } = body;
 
     if (!id) {
@@ -73,8 +75,12 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       if (allowIndexing !== undefined) updatePayload.allow_indexing = Boolean(allowIndexing);
       if (seoDescription !== undefined) updatePayload.seo_description = seoDescription;
       if (pdfUrl !== undefined) updatePayload.pdf_url = pdfUrl;
-      if (storageKey !== undefined) updatePayload.storage_key = storageKey;
+      if (storageKey !== undefined) {
+        updatePayload.storage_key = storageKey;
+        clearPdfMemoryCache(storageKey);
+      }
       if (fileSizeBytes !== undefined) updatePayload.file_size_bytes = Number(fileSizeBytes);
+      if (coverImage !== undefined) updatePayload.cover_image = coverImage;
 
       const { data, error } = await supabaseAdmin
         .from('catalogs')
@@ -98,7 +104,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   }
 }
 
-// DELETE: Delete a catalog
+// DELETE: Delete a catalog and purge caches
 export async function DELETE(request: NextRequest, { params }: RouteContext) {
   try {
     const { id } = await params;
@@ -123,10 +129,16 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
 
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-      // 3. Delete from R2 if configured
+      // 3. Clear server RAM cache
+      if (catalog?.storage_key) {
+        clearPdfMemoryCache(catalog.storage_key);
+      }
+
+      // 4. Delete from R2 if configured
       if (catalog?.storage_key) {
         try {
-          await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ''}/api/delete-file`, {
+          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.pedebook.com';
+          await fetch(`${siteUrl}/api/delete-file`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ key: catalog.storage_key }),

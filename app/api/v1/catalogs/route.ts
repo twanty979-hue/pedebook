@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
       isPublic,
       allowIndexing,
       seoDescription,
+      coverImage,
     } = body;
 
     if (!userId || !slug || !fileName || !pdfUrl) {
@@ -130,11 +131,12 @@ export async function POST(request: NextRequest) {
           file_size_bytes: Number(fileSizeBytes) || 0,
           page_count: Number(pageCount) || 0,
           bg_type: bgType || 'gradient',
-          bg_value: bgValue || 'auto',
+          bgValue: bgValue || 'auto',
           is_floating: isFloating ?? false,
           is_public: isPublic !== false,
           allow_indexing: allowIndexing === true,
           seo_description: seoDescription || null,
+          cover_image: coverImage || null,
         })
         .select()
         .single();

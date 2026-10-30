@@ -18,12 +18,23 @@ interface CatalogViewerProps {
   bgValue?: string;
   isFloating?: boolean;
   adEnabled?: boolean;
+  updatedAt?: string;
 }
 
-export default function CatalogViewer({ slug, catalogId, bgType, bgValue, isFloating, adEnabled }: CatalogViewerProps) {
+export default function CatalogViewer({
+  slug,
+  catalogId,
+  bgType,
+  bgValue,
+  isFloating,
+  adEnabled,
+  updatedAt,
+}: CatalogViewerProps) {
+  const version = updatedAt ? new Date(updatedAt).getTime() : '1';
+
   return (
     <EbookViewer
-      pdfUrl={`/api/pdf-proxy?slug=${encodeURIComponent(slug)}`}
+      pdfUrl={`/api/pdf-proxy?slug=${encodeURIComponent(slug)}&v=${version}`}
       bgType={bgType || 'gradient'}
       bgValue={bgValue || 'auto'}
       isFloating={isFloating ?? false}
