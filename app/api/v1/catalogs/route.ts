@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const teamId = searchParams.get('teamId');
     const slug = searchParams.get('slug');
+    const all = searchParams.get('all') === 'true';
 
     if (slug) {
       if (isSupabaseConfigured()) {
@@ -60,10 +61,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Supabase not configured' }, { status: 501 });
     }
 
-    if (!userId && !teamId) {
-      return NextResponse.json({ error: 'Missing userId or teamId' }, { status: 400 });
-    }
-
     if (isSupabaseConfigured()) {
       let query = supabaseAdmin.from('catalogs').select('*').order('created_at', { ascending: false });
 
@@ -71,6 +68,8 @@ export async function GET(request: NextRequest) {
         query = query.eq('team_id', teamId);
       } else if (userId) {
         query = query.eq('user_id', toValidUuid(userId));
+      } else if (!all) {
+        return NextResponse.json({ error: 'Missing userId or teamId' }, { status: 400 });
       }
 
       const { data, error } = await query;

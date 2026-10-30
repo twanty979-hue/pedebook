@@ -1,6 +1,4 @@
-import { User } from 'firebase/auth';
-import { doc, setDoc, getDocs, collection, query, where } from 'firebase/firestore';
-import { db } from './firebase';
+import { supabase, isSupabaseConfigured } from './supabase/client';
 
 export interface UserProfileRecord {
   uid: string;
@@ -41,62 +39,70 @@ export function verifyAdminPin(pin: string): boolean {
   return pin.trim() === configuredPin;
 }
 
+export type AnyUser = {
+  uid: string;
+  email?: string | null;
+  displayName?: string | null;
+  photoURL?: string | null;
+  metadata?: {
+    creationTime?: string;
+  };
+};
+
 /**
- * Syncs the current user profile into Firestore.
- * Saves to both 'catalogs' (with docType: 'user_profile' for guaranteed permissions)
- * and 'users' collection (if permitted).
+ * Syncs the current user profile into Supabase profiles.
  */
-export async function syncUserProfile(user: User): Promise<void> {
+export async function syncUserProfile(user: AnyUser): Promise<void> {
   if (!user || !user.uid) return;
 
-  const profileData: UserProfileRecord = {
-    uid: user.uid,
-    email: user.email || null,
-    displayName: user.displayName || user.email?.split('@')[0] || 'User',
-    photoURL: user.photoURL || null,
-    lastActiveAt: new Date().toISOString(),
-    createdAt: user.metadata.creationTime || new Date().toISOString(),
-    userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : '',
-    docType: 'user_profile',
-  };
+  if (!isSupabaseConfigured()) return;
 
   try {
-    // 1. Save in catalogs collection with user_profile_{uid} ID
-    // This collection is always readable according to existing rules
-    const profileDocRef = doc(db, 'catalogs', `user_profile_${user.uid}`);
-    await setDoc(profileDocRef, profileData, { merge: true });
-  } catch (err) {
-    console.debug('Could not sync user profile to catalogs collection:', err);
-  }
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(user.uid);
+    if (!isUuid) return;
 
-  try {
-    // 2. Also try saving in users collection
-    const userDocRef = doc(db, 'users', user.uid);
-    await setDoc(userDocRef, profileData, { merge: true });
+    await supabase
+      .from('profiles')
+      .upsert(
+        {
+          id: user.uid,
+          email: user.email || `${user.uid.slice(0, 12)}@pedebook.guest`,
+          display_name: user.displayName || user.email?.split('@')[0] || 'User',
+          avatar_url: user.photoURL || null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      );
   } catch (err) {
-    // Non-critical if firestore rules restrict 'users' collection
-    console.debug('Could not sync user profile to users collection (likely rules):', err);
+    console.debug('Could not sync user profile to Supabase:', err);
   }
 }
 
 /**
- * Fetches all tracked user profiles from Firestore.
+ * Fetches all tracked user profiles from Supabase.
  */
 export async function getAllUserProfiles(): Promise<Map<string, UserProfileRecord>> {
   const userMap = new Map<string, UserProfileRecord>();
 
   try {
-    // Fetch from catalogs where docType == 'user_profile'
-    const q = query(collection(db, 'catalogs'), where('docType', '==', 'user_profile'));
-    const snapshot = await getDocs(q);
-    snapshot.docs.forEach((d) => {
-      const data = d.data() as UserProfileRecord;
-      if (data.uid) {
-        userMap.set(data.uid, data);
-      }
-    });
+    const res = await fetch('/api/v1/users');
+    const json = await res.json();
+    if (json.success && Array.isArray(json.users)) {
+      json.users.forEach((u: any) => {
+        if (u.id) {
+          userMap.set(u.id, {
+            uid: u.id,
+            email: u.email || null,
+            displayName: u.display_name || u.email?.split('@')[0] || 'User',
+            photoURL: u.avatar_url || null,
+            lastActiveAt: u.updated_at || u.created_at,
+            createdAt: u.created_at,
+          });
+        }
+      });
+    }
   } catch (err) {
-    console.warn('Error querying user profiles from catalogs:', err);
+    console.warn('Error querying user profiles from Supabase:', err);
   }
 
   return userMap;

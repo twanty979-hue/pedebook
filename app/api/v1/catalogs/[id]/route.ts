@@ -50,6 +50,9 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       isPublic,
       allowIndexing,
       seoDescription,
+      pdfUrl,
+      storageKey,
+      fileSizeBytes,
     } = body;
 
     if (!id) {
@@ -69,6 +72,9 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       if (isPublic !== undefined) updatePayload.is_public = Boolean(isPublic);
       if (allowIndexing !== undefined) updatePayload.allow_indexing = Boolean(allowIndexing);
       if (seoDescription !== undefined) updatePayload.seo_description = seoDescription;
+      if (pdfUrl !== undefined) updatePayload.pdf_url = pdfUrl;
+      if (storageKey !== undefined) updatePayload.storage_key = storageKey;
+      if (fileSizeBytes !== undefined) updatePayload.file_size_bytes = Number(fileSizeBytes);
 
       const { data, error } = await supabaseAdmin
         .from('catalogs')

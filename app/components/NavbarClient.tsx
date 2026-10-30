@@ -3,17 +3,22 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { auth } from '../src/lib/firebase';
-import { syncUserProfile } from '../src/lib/user-tracking';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase/client';
+
+export type AuthUser = {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  isAnonymous?: boolean;
+};
 
 type NavbarClientProps = {
   locale?: 'th' | 'en';
 };
 
 export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const isEnglish = locale === 'en';
   const copy = isEnglish
@@ -42,19 +47,22 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
     let isMounted = true;
 
     async function checkAuth() {
-      // 1. ตรวจสอบ Supabase Session
       if (isSupabaseConfigured()) {
         try {
-          const { data: { session } } = await supabase.auth.getSession();
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
           if (session?.user && isMounted) {
-            const sbUser = {
+            setUser({
               uid: session.user.id,
               email: session.user.email || null,
-              displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+              displayName:
+                session.user.user_metadata?.full_name ||
+                session.user.email?.split('@')[0] ||
+                'User',
               photoURL: session.user.user_metadata?.avatar_url || null,
               isAnonymous: false,
-            } as unknown as User;
-            setUser(sbUser);
+            });
             setLoading(false);
             return;
           }
@@ -63,40 +71,29 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
         }
       }
 
-      // 2. ตรวจสอบ Firebase Auth
-      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        if (!isMounted) return;
-        if (currentUser) {
-          setUser(currentUser);
-          syncUserProfile(currentUser);
-        } else {
-          setUser(null);
-        }
+      if (isMounted) {
+        setUser(null);
         setLoading(false);
-      });
-
-      return unsubscribe;
+      }
     }
 
-    let fbUnsub: (() => void) | undefined;
-    checkAuth().then((unsub) => {
-      fbUnsub = unsub;
-    });
+    checkAuth();
 
-    // ฟังการเปลี่ยนแปลงของ Supabase Auth
     let sbSub: { unsubscribe: () => void } | undefined;
     if (isSupabaseConfigured()) {
       const { data } = supabase.auth.onAuthStateChange((_event, session) => {
         if (!isMounted) return;
         if (session?.user) {
-          const sbUser = {
+          setUser({
             uid: session.user.id,
             email: session.user.email || null,
-            displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+            displayName:
+              session.user.user_metadata?.full_name ||
+              session.user.email?.split('@')[0] ||
+              'User',
             photoURL: session.user.user_metadata?.avatar_url || null,
             isAnonymous: false,
-          } as unknown as User;
-          setUser(sbUser);
+          });
         } else {
           setUser(null);
         }
@@ -107,7 +104,6 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
 
     return () => {
       isMounted = false;
-      if (fbUnsub) fbUnsub();
       if (sbSub) sbSub.unsubscribe();
     };
   }, []);
@@ -117,7 +113,6 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
       if (isSupabaseConfigured()) {
         await supabase.auth.signOut();
       }
-      await signOut(auth);
       setUser(null);
     } catch (error) {
       console.error('Sign out error', error);
@@ -151,7 +146,7 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
               className="flex items-center gap-2 rounded-full border border-[#d9d7cd] bg-white/60 px-3 py-1.5 shadow-sm backdrop-blur hover:bg-[#243129]/5 transition-all duration-300 cursor-pointer"
             >
               {user.photoURL ? (
-                // eslint-disable-next-line @next/next/no-img-element -- Dynamic Firebase user avatar URL
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={user.photoURL}
                   alt={user.displayName || 'User Profile'}
@@ -186,11 +181,16 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
               title="แผงควบคุมแอดมิน"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                />
               </svg>
               <span>{copy.admin}</span>
             </Link>
-            
+
             {!user.isAnonymous && (
               <button
                 onClick={handleSignOut}

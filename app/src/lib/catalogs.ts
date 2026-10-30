@@ -1,6 +1,4 @@
 import { cache } from 'react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from './firebase';
 import { supabaseAdmin } from './supabase/server';
 import { isSupabaseConfigured } from './supabase/client';
 
@@ -25,7 +23,6 @@ export interface CatalogRecord {
 }
 
 export const getCatalogBySlug = cache(async (slug: string): Promise<CatalogRecord | null> => {
-  // 1. ค้นหาจาก Supabase ก่อน (ความเร็วสูง + ระบบใหม่ 2.0)
   if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabaseAdmin
@@ -55,25 +52,8 @@ export const getCatalogBySlug = cache(async (slug: string): Promise<CatalogRecor
         };
       }
     } catch (err) {
-      console.warn('Supabase getCatalogBySlug error, falling back to Firebase:', err);
+      console.warn('Supabase getCatalogBySlug error:', err);
     }
-  }
-
-  // 2. Fallback ไปหาใน Firebase Firestore
-  try {
-    const snapshot = await getDocs(
-      query(collection(db, 'catalogs'), where('slug', '==', slug)),
-    );
-
-    if (!snapshot.empty) {
-      const document = snapshot.docs[0];
-      return {
-        id: document.id,
-        ...(document.data() as Omit<CatalogRecord, 'id'>),
-      };
-    }
-  } catch (err) {
-    console.warn('Firestore getCatalogBySlug error:', err);
   }
 
   return null;
@@ -82,7 +62,6 @@ export const getCatalogBySlug = cache(async (slug: string): Promise<CatalogRecor
 export const getIndexableCatalogs = cache(async (): Promise<CatalogRecord[]> => {
   const catalogs: CatalogRecord[] = [];
 
-  // 1. ดึงจาก Supabase
   if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabaseAdmin
@@ -116,27 +95,6 @@ export const getIndexableCatalogs = cache(async (): Promise<CatalogRecord[]> => 
     } catch (err) {
       console.warn('Supabase getIndexableCatalogs error:', err);
     }
-  }
-
-  // 2. ดึงจาก Firebase ด้วย
-  try {
-    const snapshot = await getDocs(
-      query(collection(db, 'catalogs'), where('allowIndexing', '==', true)),
-    );
-    const fbItems = snapshot.docs
-      .map((document) => ({
-        id: document.id,
-        ...(document.data() as Omit<CatalogRecord, 'id'>),
-      }))
-      .filter((catalog) => catalog.isPublic !== false && catalog.allowIndexing === true);
-
-    fbItems.forEach((fbItem) => {
-      if (!catalogs.some((c) => c.slug === fbItem.slug)) {
-        catalogs.push(fbItem);
-      }
-    });
-  } catch (err) {
-    console.warn('Firestore getIndexableCatalogs error:', err);
   }
 
   return catalogs;
