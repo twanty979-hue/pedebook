@@ -61,6 +61,7 @@ function AnalyticsDashboardContent() {
 
   const [catalogs, setCatalogs] = useState<CatalogSummaryItem[]>([]);
   const [selectedId, setSelectedId] = useState<string>(initialId);
+  const [selectedBookInfo, setSelectedBookInfo] = useState<CatalogSummaryItem | null>(null);
   const [pageStats, setPageStats] = useState<PageStatItem[]>([]);
   const [globalReaderMetrics, setGlobalReaderMetrics] = useState<ReaderMetrics>({
     totalUniqueReaders: 0,
@@ -145,6 +146,9 @@ function AnalyticsDashboardContent() {
         const res = await fetch(`/api/v1/analytics/stats?catalogId=${selectedId}`);
         const data = await res.json();
         if (data.success && isMounted) {
+          if (data.catalog) {
+            setSelectedBookInfo(data.catalog);
+          }
           if (Array.isArray(data.stats)) {
             setPageStats(data.stats);
           }
@@ -173,8 +177,8 @@ function AnalyticsDashboardContent() {
   // Computed data for current selected catalog
   const currentCatalog = useMemo(() => {
     if (selectedId === 'all') return null;
-    return catalogs.find((c) => c.id === selectedId || c.slug === selectedId) || null;
-  }, [selectedId, catalogs]);
+    return catalogs.find((c) => c.id === selectedId || c.slug === selectedId) || selectedBookInfo || null;
+  }, [selectedId, catalogs, selectedBookInfo]);
 
   // Global KPIs (Overview mode)
   const totalGlobalViews = useMemo(() => catalogs.reduce((s, c) => s + c.totalViews, 0), [catalogs]);
@@ -258,6 +262,9 @@ function AnalyticsDashboardContent() {
                 value={selectedId}
                 onChange={(e) => {
                   setSelectedId(e.target.value);
+                  if (e.target.value === 'all') {
+                    setSelectedBookInfo(null);
+                  }
                   const newUrl = e.target.value === 'all' ? '/dashboard/analytics' : `/dashboard/analytics?id=${e.target.value}`;
                   window.history.pushState({}, '', newUrl);
                 }}
@@ -270,6 +277,11 @@ function AnalyticsDashboardContent() {
                       📖 {cat.displayTitle} ({cat.uniqueReaders || cat.totalViews} คน)
                     </option>
                   ))}
+                  {selectedBookInfo && !catalogs.some((c) => c.id === selectedBookInfo.id) && (
+                    <option key={selectedBookInfo.id} value={selectedBookInfo.id}>
+                      📖 {selectedBookInfo.displayTitle}
+                    </option>
+                  )}
                 </optgroup>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-[#6e746f]">
@@ -486,10 +498,18 @@ function AnalyticsDashboardContent() {
             {/* Book Info Header Banner */}
             <div className="bg-white border border-[#e2dfd5] rounded-3xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-16 rounded-lg bg-[#243129] border-l-3 border-[#9a7257] shadow-md flex items-center justify-center text-[#e8dcc7] shrink-0">
-                  <svg className="w-6 h-6 text-emerald-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                  </svg>
+                <div className="w-12 h-16 rounded-lg bg-[#243129] border-l-3 border-[#9a7257] shadow-md overflow-hidden flex items-center justify-center text-[#e8dcc7] shrink-0">
+                  {currentCatalog?.coverImage ? (
+                    <img
+                      src={currentCatalog.coverImage}
+                      alt={currentCatalog.displayTitle}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <svg className="w-6 h-6 text-emerald-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">

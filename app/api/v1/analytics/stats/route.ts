@@ -40,6 +40,13 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ error: pageError.message }, { status: 500 });
         }
 
+        // ดึงข้อมูลแค็ตตาล็อกเล่มนี้ (Metadata สำหรับแสดงผล Header & Card)
+        const { data: bookInfo } = await supabaseAdmin
+          .from('catalogs')
+          .select('id, slug, file_name, title, cover_image, file_size_bytes, created_at, user_id')
+          .eq('id', targetCatalogId)
+          .maybeSingle();
+
         // ดึงสถิติตัวตนคนอ่านจริง (Unique Readers vs Returning Readers) จาก catalog_readers
         const { data: readersData, error: readersError } = await supabaseAdmin
           .from('catalog_readers')
@@ -58,6 +65,16 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
           success: true,
+          catalog: bookInfo ? {
+            id: bookInfo.id,
+            slug: bookInfo.slug,
+            fileName: bookInfo.file_name,
+            title: bookInfo.title,
+            displayTitle: bookInfo.title || bookInfo.file_name?.replace(/\.pdf$/i, '').replace(/-/g, ' '),
+            coverImage: bookInfo.cover_image,
+            size: Number(bookInfo.file_size_bytes || 0),
+            createdAt: bookInfo.created_at,
+          } : null,
           stats: pageData || [],
           readers: {
             totalUniqueReaders,
@@ -73,7 +90,7 @@ export async function GET(request: NextRequest) {
       // ══════════════════════════════════════════════════════════════
       let catalogQuery = supabaseAdmin
         .from('catalogs')
-        .select('id, slug, file_name, display_title, cover_image, file_size_bytes, created_at, user_id')
+        .select('id, slug, file_name, title, cover_image, file_size_bytes, created_at, user_id')
         .order('created_at', { ascending: false });
 
       if (userId) {
@@ -141,7 +158,8 @@ export async function GET(request: NextRequest) {
           id: cat.id,
           slug: cat.slug,
           fileName: cat.file_name,
-          displayTitle: cat.display_title || cat.file_name?.replace(/\.pdf$/i, '').replace(/-/g, ' '),
+          title: cat.title,
+          displayTitle: cat.title || cat.file_name?.replace(/\.pdf$/i, '').replace(/-/g, ' '),
           coverImage: cat.cover_image,
           size: Number(cat.file_size_bytes || 0),
           createdAt: cat.created_at,
