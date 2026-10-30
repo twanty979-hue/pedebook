@@ -4,23 +4,19 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { onAuthStateChanged, signOut, signInAnonymously, User } from 'firebase/auth';
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  deleteDoc,
-  updateDoc,
-  doc,
-  orderBy,
-} from 'firebase/firestore';
 import { QRCodeCanvas } from 'qrcode.react';
-import { auth, db } from '../src/lib/firebase';
 import { syncUserProfile } from '../src/lib/user-tracking';
 import { PLANS, validateUploadLimits } from '../src/lib/plans';
 import PageAnalyticsBoard from '../components/PageAnalyticsBoard';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase/client';
+
+export interface DashboardUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  isAnonymous?: boolean;
+}
 
 const BookCover = dynamic(() => import('../components/BookCover'), {
   ssr: false,
@@ -83,7 +79,7 @@ function formatDate(iso: string) {
 }
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<DashboardUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
   const [file, setFile] = useState<File | null>(null);
@@ -127,62 +123,114 @@ export default function DashboardPage() {
     }
   }, [editModal]);
 
-  // 1. ตรวจสอบสิทธิ์หรือสร้าง Guest Session ทันที (ไม่ต้องสมัครสมาชิก)
+  // 1. ตรวจสอบสิทธิ์ (Supabase Auth / Local Guest Workspace)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!currentUser) {
+    let isMounted = true;
+
+    async function initAuth() {
+      // 1. ตรวจสอบ Supabase Auth ก่อน
+      if (isSupabaseConfigured()) {
         try {
-          const cred = await signInAnonymously(auth);
-          setUser(cred.user);
-          setAuthLoading(false);
-          syncUserProfile(cred.user);
-        } catch (err) {
-          console.warn('Anonymous auth unavailable, fallback to local guest session:', err);
-          let guestId = '';
-          if (typeof window !== 'undefined') {
-            guestId = localStorage.getItem('pedebook_guest_uid') || '';
-            if (!guestId) {
-              guestId = 'guest_' + crypto.randomUUID().slice(0, 12);
-              localStorage.setItem('pedebook_guest_uid', guestId);
-            }
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user && isMounted) {
+            const sbUser: DashboardUser = {
+              uid: session.user.id,
+              email: session.user.email || null,
+              displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+              photoURL: session.user.user_metadata?.avatar_url || null,
+              isAnonymous: false,
+            };
+            setUser(sbUser);
+            setAuthLoading(false);
+            fetchCatalogs(session.user.id);
+            return;
           }
-          const mockGuest = {
-            uid: guestId || 'guest_user',
-            email: null,
-            displayName: 'ผู้ใช้งานทั่วไป',
-            photoURL: null,
-            isAnonymous: true,
-          } as unknown as User;
-          setUser(mockGuest);
-          setAuthLoading(false);
-          fetchCatalogs(mockGuest.uid);
+
+          supabase.auth.onAuthStateChange((_event, session) => {
+            if (session?.user && isMounted) {
+              const sbUser: DashboardUser = {
+                uid: session.user.id,
+                email: session.user.email || null,
+                displayName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+                photoURL: session.user.user_metadata?.avatar_url || null,
+                isAnonymous: false,
+              };
+              setUser(sbUser);
+              setAuthLoading(false);
+              fetchCatalogs(session.user.id);
+            }
+          });
+        } catch (sbErr) {
+          console.warn('Supabase auth check note:', sbErr);
         }
-      } else {
-        setUser(currentUser);
-        setAuthLoading(false);
-        syncUserProfile(currentUser);
       }
-    });
-    return () => unsubscribe();
+
+      // 2. ถ้ายังไม่ล็อกอิน ให้สร้างหรือใช้ Guest Workspace ประจำเครื่อง
+      let guestId = '';
+      if (typeof window !== 'undefined') {
+        guestId = localStorage.getItem('pedebook_guest_uid') || '';
+        if (!guestId) {
+          guestId = 'guest_' + crypto.randomUUID().slice(0, 12);
+          localStorage.setItem('pedebook_guest_uid', guestId);
+        }
+      }
+      const mockGuest: DashboardUser = {
+        uid: guestId || 'guest_user',
+        email: null,
+        displayName: 'ผู้ใช้งานทั่วไป',
+        photoURL: null,
+        isAnonymous: true,
+      };
+      if (isMounted) {
+        setUser(mockGuest);
+        setAuthLoading(false);
+        fetchCatalogs(mockGuest.uid);
+      }
+    }
+
+    initAuth();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // 2. ดึงแค็ตตาล็อกแยกตามสิทธิ์ผู้ใช้จาก Firestore
+  // 2. ดึงแค็ตตาล็อกแยกตามสิทธิ์ผู้ใช้จาก Supabase REST API
   const fetchCatalogs = async (userId: string) => {
     setLoading(true);
     try {
-      const catalogsRef = collection(db, 'catalogs');
-      const q = query(
-        catalogsRef,
-        where('userId', '==', userId),
-        orderBy('lastModified', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      const items: CatalogItem[] = snapshot.docs
-        .map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<CatalogItem, 'id'>),
-        }))
-        .filter((item) => (!item.docType || item.docType === 'catalog') && item.fileName);
+      const itemsMap = new Map<string, CatalogItem>();
+
+      // ดึงจาก Supabase REST API
+      try {
+        const res = await fetch(`/api/v1/catalogs?userId=${encodeURIComponent(userId)}`);
+        const json = await res.json();
+        if (json.success && Array.isArray(json.catalogs)) {
+          json.catalogs.forEach((c: any) => {
+            itemsMap.set(c.slug, {
+              id: c.id,
+              slug: c.slug,
+              fileName: c.file_name,
+              pdfUrl: c.pdf_url,
+              r2Key: c.storage_key,
+              size: Number(c.file_size_bytes || 0),
+              lastModified: c.created_at,
+              bgType: c.bg_type,
+              bgValue: c.bg_value,
+              isFloating: c.is_floating,
+              displayTitle: c.title,
+              seoDescription: c.seo_description,
+              isPublic: c.is_public,
+              allowIndexing: c.allow_indexing,
+              updatedAt: c.updated_at,
+              adEnabled: c.ad_enabled,
+            });
+          });
+        }
+      } catch (sbErr) {
+        console.warn('Supabase fetch catalogs note:', sbErr);
+      }
+
+      const items = Array.from(itemsMap.values());
       setCatalogs(items);
     } catch (err) {
       console.error('Error fetching catalogs:', err);
@@ -236,18 +284,20 @@ export default function DashboardPage() {
     setSaving(true);
 
     try {
-      const docRef = doc(db, 'catalogs', editModal.id);
-      await updateDoc(docRef, {
-        fileName: editName,
-        displayTitle: editName.trim() || editModal.fileName,
-        seoDescription: editDescription.trim() || `อ่าน ${editName.trim() || editModal.fileName} ออนไลน์แบบ Flipbook แชร์ลิงก์และ QR Code ได้ทันที`,
-        isPublic: true,
-        allowIndexing: true,
-        bgType: editBgType,
-        bgValue: editBgValue,
-        isFloating: editIsFloating,
-        lastModified: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      // 1. อัปเดตใน Supabase
+      await fetch(`/api/v1/catalogs/${editModal.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editName.trim() || editModal.fileName,
+          fileName: editName,
+          seoDescription: editDescription.trim(),
+          bgType: editBgType,
+          bgValue: editBgValue,
+          isFloating: editIsFloating,
+          isPublic: true,
+          allowIndexing: true,
+        }),
       });
 
       setEditModal(null);
@@ -322,29 +372,44 @@ export default function DashboardPage() {
         fileName: presignData.fileName,
       };
     } catch (directErr) {
-      console.warn('Direct upload failed, checking fallback:', directErr);
-      // Fallback ถ้าไฟล์ขนาด <= 4.5 MB ให้ลองส่งผ่าน /api/upload
-      if (targetFile.size <= 4.5 * 1024 * 1024) {
-        onProgress(50, 'กำลังส่งไฟล์สำรอง...');
-        const formData = new FormData();
-        formData.append('file', targetFile);
-        formData.append('userId', userId);
+      console.warn('Direct upload failed, switching to secure server upload fallback:', directErr);
+      onProgress(30, 'กำลังส่งไฟล์ผ่านเซิร์ฟเวอร์ความเร็วสูง...');
 
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!data.success) {
-          throw new Error(data.error || 'การส่งไฟล์สำรองไม่สำเร็จ');
-        }
-        onProgress(100, 'อัปโหลดสำเร็จ!');
-        return data;
-      }
+      const formData = new FormData();
+      formData.append('file', targetFile);
+      formData.append('userId', userId);
 
-      throw new Error(
-        'อัปโหลดไฟล์ขนาดใหญ่ไม่สำเร็จ: กรุณาเปิดใช้งาน CORS บน Cloudflare R2 หรือติดต่อแอดมินเพื่อตรวจสอบครับ'
-      );
+      return await new Promise<{ url: string; key: string; fileName: string }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/upload');
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.min(95, Math.round((event.loaded / event.total) * 65) + 30);
+            onProgress(percent, `กำลังส่งไฟล์เข้าสู่คลาวด์ ${percent}%...`);
+          }
+        };
+
+        xhr.onload = () => {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            if (xhr.status >= 200 && xhr.status < 300 && data.success) {
+              onProgress(100, 'อัปโหลดสำเร็จ!');
+              resolve(data);
+            } else {
+              reject(new Error(data.error || 'การส่งไฟล์ไม่สำเร็จ'));
+            }
+          } catch (e) {
+            reject(new Error('ตอบกลับจากเซิร์ฟเวอร์ไม่ถูกต้อง'));
+          }
+        };
+
+        xhr.onerror = () => {
+          reject(new Error('การเชื่อมต่อกับเซิร์ฟเวอร์ล้มเหลว กรุณาลองใหม่อีกครั้งครับ'));
+        };
+
+        xhr.send(formData);
+      });
     }
   };
 
@@ -375,44 +440,26 @@ export default function DashboardPage() {
       setUploadStatusText('กำลังบันทึกข้อมูลสมุด...');
       const slug = createCatalogSlug(file.name);
 
-      const totalBytesWithNew = totalBytes + file.size;
-      const isOver100Mb = totalBytesWithNew > 100 * 1024 * 1024;
-
-      const catalogsRef = collection(db, 'catalogs');
-      await addDoc(catalogsRef, {
-        userId: user.uid,
-        userEmail: user.email || '',
-        userName: user.displayName || (user.isAnonymous ? 'ผู้ใช้งานทั่วไป' : 'User'),
-        userPhoto: user.photoURL || '',
-        docType: 'catalog',
-        slug,
-        fileName: file.name,
-        pdfUrl: uploadRes.url,
-        r2Key: uploadRes.key,
-        size: file.size,
-        adEnabled: isOver100Mb,
-        lastModified: new Date().toISOString(),
-        bgType: 'gradient',
-        bgValue: 'auto',
-        displayTitle: file.name.replace(/\.pdf$/i, ''),
-        seoDescription: `อ่าน ${file.name.replace(/\.pdf$/i, '')} ออนไลน์แบบ Flipbook แชร์ลิงก์และ QR Code ได้ทันที`,
-        isPublic: true,
-        allowIndexing: false,
-        updatedAt: new Date().toISOString(),
+      // 1. บันทึกลง Supabase (Universal API รองรับทั้ง Web & Mobile)
+      await fetch('/api/v1/catalogs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          slug,
+          title: file.name.replace(/\.pdf$/i, ''),
+          fileName: file.name,
+          pdfUrl: uploadRes.url,
+          storageKey: uploadRes.key,
+          fileSizeBytes: file.size,
+          bgType: 'gradient',
+          bgValue: 'auto',
+          isFloating: false,
+          isPublic: true,
+          allowIndexing: false,
+          seoDescription: `อ่าน ${file.name.replace(/\.pdf$/i, '')} ออนไลน์แบบ Flipbook แชร์ลิงก์และ QR Code ได้ทันที`,
+        }),
       });
-
-      // หากพื้นที่รวมเกิน 100 MB ปรับสถานะเปิดโฆษณาให้กับสมุดทั้งหมดของผู้ใช้นี้
-      if (isOver100Mb) {
-        catalogs.forEach(async (c) => {
-          if (!c.adEnabled) {
-            try {
-              await updateDoc(doc(db, 'catalogs', c.id), { adEnabled: true });
-            } catch (err) {
-              console.warn('Sync adEnabled error:', err);
-            }
-          }
-        });
-      }
 
       setUploadResult({ slug });
       setFile(null);
@@ -451,14 +498,15 @@ export default function DashboardPage() {
         body: JSON.stringify({ key: item.r2Key }),
       });
 
-      const docRef = doc(db, 'catalogs', item.id);
-      await updateDoc(docRef, {
-        fileName: newFile.name,
-        pdfUrl: uploadRes.url,
-        r2Key: uploadRes.key,
-        size: newFile.size,
-        lastModified: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      await fetch(`/api/v1/catalogs/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: newFile.name,
+          pdfUrl: uploadRes.url,
+          storageKey: uploadRes.key,
+          fileSizeBytes: newFile.size,
+        }),
       });
 
       fetchCatalogs(user.uid);
@@ -477,27 +525,17 @@ export default function DashboardPage() {
     if (!confirm(`ลบแค็ตตาล็อก "${item.fileName.replace(/-/g, ' ')}" ใช่ไหมครับ? ผู้ใช้ภายนอกจะไม่สามารถเปิดอ่านลิงก์นี้ได้อีก`)) return;
 
     try {
-      await deleteDoc(doc(db, 'catalogs', item.id));
+      // ลบจาก Supabase ผ่าน API
+      await fetch(`/api/v1/catalogs/${item.id}`, {
+        method: 'DELETE',
+      });
 
+      // 3. ลบไฟล์บน R2
       await fetch('/api/delete-file', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: item.r2Key }),
       });
-
-      // หากพื้นที่เหลือไม่เกิน 100 MB ปิดโฆษณาให้สมุดที่เหลือ
-      const remainingBytes = catalogs.filter((c) => c.id !== item.id).reduce((acc, c) => acc + (c.size || 0), 0);
-      if (remainingBytes <= 100 * 1024 * 1024) {
-        catalogs.filter((c) => c.id !== item.id).forEach(async (c) => {
-          if (c.adEnabled) {
-            try {
-              await updateDoc(doc(db, 'catalogs', c.id), { adEnabled: false });
-            } catch (err) {
-              console.warn('Reset adEnabled error:', err);
-            }
-          }
-        });
-      }
 
       fetchCatalogs(user.uid);
     } catch (err) {
@@ -526,7 +564,12 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-      await signOut(auth);
+      if (isSupabaseConfigured()) {
+        try {
+          await supabase.auth.signOut();
+        } catch (_) {}
+      }
+      setUser(null);
       router.push('/login');
     }
   };
@@ -658,11 +701,7 @@ export default function DashboardPage() {
             <div className="w-full mr-4">
               <p className="text-xs font-bold uppercase tracking-wider text-[#755a47]">พื้นที่จัดเก็บรวม</p>
               <h3 className="text-3xl font-bold mt-1 text-[#17221c]">{formatSize(totalSize)}</h3>
-              {totalSize > 100 * 1024 * 1024 ? (
-                <p className="text-[10px] text-amber-700 mt-1 font-semibold">⚡ เกิน 100 MB (เปิดโฆษณาผู้สนับสนุน 5 วิ)</p>
-              ) : (
-                <p className="text-[10px] text-emerald-700 mt-1 font-semibold">✓ ไม่เกิน 100 MB (ไม่มีโฆษณา)</p>
-              )}
+              <p className="text-[10px] text-emerald-700 mt-1 font-semibold">คลาวด์ความเร็วสูง CDN (ไม่จำกัด)</p>
             </div>
             <div className="text-[#9a7257] bg-[#9a7257]/5 p-3 rounded-xl shrink-0">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -736,16 +775,9 @@ export default function DashboardPage() {
                       <h3 className="text-xs font-bold text-[#17221c] truncate max-w-[100px] sm:max-w-[120px] leading-tight" title={item.fileName.replace(/-/g, ' ')}>
                         {item.fileName.replace(/-/g, ' ').replace(/\.pdf$/i, '')}
                       </h3>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <p className="text-[9px] text-[#6e746f] font-mono leading-none">
-                          {formatSize(item.size)}
-                        </p>
-                        {item.adEnabled && (
-                          <span className="text-[8px] bg-amber-100 text-amber-800 px-1 py-0.5 rounded font-semibold leading-none">
-                            Ads 5s
-                          </span>
-                        )}
-                      </div>
+                      <p className="text-[9px] text-[#6e746f] mt-0.5 font-mono leading-none">
+                        {formatSize(item.size)}
+                      </p>
                       <a
                         href={`/catalog/${item.slug}`}
                         target="_blank"

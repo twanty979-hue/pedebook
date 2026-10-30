@@ -12,10 +12,26 @@ export async function GET(request: NextRequest) {
     }
 
     if (isSupabaseConfigured()) {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      let targetCatalogId = catalogId;
+
+      if (!uuidRegex.test(catalogId)) {
+        // ค้นหา ID จริงของหนังสือจาก Supabase โดยใช้ slug
+        const { data: cat } = await supabaseAdmin
+          .from('catalogs')
+          .select('id')
+          .eq('slug', catalogId)
+          .maybeSingle();
+
+        if (cat?.id) {
+          targetCatalogId = cat.id;
+        }
+      }
+
       const { data, error } = await supabaseAdmin
         .from('catalog_page_stats')
         .select('*')
-        .eq('catalog_id', catalogId)
+        .eq('catalog_id', targetCatalogId)
         .order('page_number', { ascending: true });
 
       if (error) {

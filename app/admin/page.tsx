@@ -3,23 +3,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import {
-  onAuthStateChanged,
-  signOut,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  User,
-} from 'firebase/auth';
-import {
-  collection,
-  getDocs,
-  doc,
-  deleteDoc,
-  updateDoc,
-} from 'firebase/firestore';
 import { QRCodeCanvas } from 'qrcode.react';
-import { auth, db } from '../src/lib/firebase';
+import { supabase, isSupabaseConfigured } from '../src/lib/supabase/client';
 import {
   isAdminEmail,
   verifyAdminPin,
@@ -27,6 +12,13 @@ import {
   UserProfileRecord,
   syncUserProfile,
 } from '../src/lib/user-tracking';
+
+export interface AdminUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+}
 
 const BookCover = dynamic(() => import('../components/BookCover'), {
   ssr: false,
@@ -96,7 +88,7 @@ function formatDate(iso?: string): string {
 }
 
 export default function AdminPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AdminUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [pinInput, setPinInput] = useState('');
@@ -163,56 +155,125 @@ export default function AdminPage() {
 
   // Auth observer
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setAuthLoading(false);
+    let isMounted = true;
 
-      if (currentUser) {
-        syncUserProfile(currentUser);
-        // Check if admin by email
-        if (isAdminEmail(currentUser.email)) {
+    async function checkAuth() {
+      if (isSupabaseConfigured()) {
+        try {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          if (session?.user && isMounted) {
+            const adminUser: AdminUser = {
+              uid: session.user.id,
+              email: session.user.email || null,
+              displayName:
+                session.user.user_metadata?.full_name ||
+                session.user.email?.split('@')[0] ||
+                'Admin',
+              photoURL: session.user.user_metadata?.avatar_url || null,
+            };
+            setUser(adminUser);
+            setAuthLoading(false);
+
+            if (isAdminEmail(adminUser.email)) {
+              setIsAuthorized(true);
+            } else {
+              const sessionUnlocked = sessionStorage.getItem('pedebook_admin_unlocked');
+              if (sessionUnlocked === 'true') {
+                setIsAuthorized(true);
+              }
+            }
+            return;
+          }
+        } catch (e) {
+          console.warn('Supabase session check note:', e);
+        }
+      }
+
+      if (isMounted) {
+        setUser(null);
+        setAuthLoading(false);
+        const sessionUnlocked = sessionStorage.getItem('pedebook_admin_unlocked');
+        if (sessionUnlocked === 'true') {
           setIsAuthorized(true);
         } else {
-          // Check if session previously unlocked with PIN
-          const sessionUnlocked = sessionStorage.getItem('pedebook_admin_unlocked');
-          if (sessionUnlocked === 'true') {
+          setIsAuthorized(false);
+        }
+      }
+    }
+
+    checkAuth();
+
+    let sbSub: { unsubscribe: () => void } | undefined;
+    if (isSupabaseConfigured()) {
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!isMounted) return;
+        if (session?.user) {
+          const adminUser: AdminUser = {
+            uid: session.user.id,
+            email: session.user.email || null,
+            displayName:
+              session.user.user_metadata?.full_name ||
+              session.user.email?.split('@')[0] ||
+              'Admin',
+            photoURL: session.user.user_metadata?.avatar_url || null,
+          };
+          setUser(adminUser);
+          if (isAdminEmail(adminUser.email)) {
             setIsAuthorized(true);
           }
+        } else {
+          setUser(null);
+          setIsAuthorized(false);
         }
-      } else {
-        setIsAuthorized(false);
-      }
-    });
+        setAuthLoading(false);
+      });
+      sbSub = data.subscription;
+    }
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      if (sbSub) sbSub.unsubscribe();
+    };
   }, []);
 
-  // Fetch all catalogs and user profiles
+  // Fetch all catalogs and user profiles from Supabase
   const fetchData = async () => {
     setDataLoading(true);
     setDataError(null);
     try {
-      // 1. Fetch catalogs collection
-      const catalogsSnapshot = await getDocs(collection(db, 'catalogs'));
+      // 1. Fetch catalogs from Supabase REST API
+      const res = await fetch('/api/v1/catalogs?all=true');
+      const json = await res.json();
       const items: CatalogAdminItem[] = [];
 
-      catalogsSnapshot.docs.forEach((docSnap) => {
-        const data = docSnap.data();
-        // Ignore user_profile metadata documents
-        if (data.docType === 'user_profile' || docSnap.id.startsWith('user_profile_')) {
-          return;
-        }
-        if (data.fileName || data.slug) {
+      if (json.success && Array.isArray(json.catalogs)) {
+        json.catalogs.forEach((c: any) => {
           items.push({
-            id: docSnap.id,
-            ...(data as Omit<CatalogAdminItem, 'id'>),
+            id: c.id,
+            slug: c.slug,
+            fileName: c.file_name,
+            pdfUrl: c.pdf_url,
+            r2Key: c.storage_key,
+            size: Number(c.file_size_bytes || 0),
+            lastModified: c.created_at,
+            updatedAt: c.updated_at,
+            userId: c.user_id,
+            displayTitle: c.title,
+            seoDescription: c.seo_description,
+            isPublic: c.is_public,
+            allowIndexing: c.allow_indexing,
+            bgType: c.bg_type,
+            bgValue: c.bg_value,
+            isFloating: c.is_floating,
           });
-        }
-      });
+        });
+      }
 
       setCatalogs(items);
 
-      // 2. Fetch user profiles
+      // 2. Fetch user profiles from Supabase
       const profiles = await getAllUserProfiles();
       setUserProfiles(profiles);
     } catch (err: unknown) {
@@ -257,9 +318,19 @@ export default function AdminPage() {
     setLoginLoading(true);
     setLoginError(null);
     try {
-      const res = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-      if (res.user) {
-        syncUserProfile(res.user);
+      const { data, error: sbErr } = await supabase.auth.signInWithPassword({
+        email: loginEmail.trim(),
+        password: loginPassword,
+      });
+      if (sbErr) throw sbErr;
+      if (data.user) {
+        syncUserProfile({
+          uid: data.user.id,
+          email: data.user.email,
+          displayName:
+            data.user.user_metadata?.full_name || data.user.email?.split('@')[0],
+          photoURL: data.user.user_metadata?.avatar_url,
+        });
       }
     } catch (err: unknown) {
       console.error(err);
@@ -274,23 +345,25 @@ export default function AdminPage() {
   const handleAdminGoogleLogin = async () => {
     setLoginLoading(true);
     setLoginError(null);
-    const provider = new GoogleAuthProvider();
     try {
-      const res = await signInWithPopup(auth, provider);
-      if (res.user) {
-        syncUserProfile(res.user);
-      }
+      const { error: sbErr } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: typeof window !== 'undefined' ? window.location.href : undefined,
+        },
+      });
+      if (sbErr) throw sbErr;
     } catch (err: unknown) {
       console.error(err);
       setLoginError('เข้าสู่ระบบด้วย Google ไม่สำเร็จ');
-    } finally {
       setLoginLoading(false);
     }
   };
 
   const handleLogout = async () => {
     sessionStorage.removeItem('pedebook_admin_unlocked');
-    await signOut(auth);
+    await supabase.auth.signOut();
+    setUser(null);
     setIsAuthorized(false);
   };
 
@@ -448,10 +521,10 @@ export default function AdminPage() {
     setUpdatingVisibilityId(item.id);
     const newStatus = item.isPublic === false;
     try {
-      const docRef = doc(db, 'catalogs', item.id);
-      await updateDoc(docRef, {
-        isPublic: newStatus,
-        updatedAt: new Date().toISOString(),
+      await fetch(`/api/v1/catalogs/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic: newStatus }),
       });
       setCatalogs((prev) =>
         prev.map((c) => (c.id === item.id ? { ...c, isPublic: newStatus } : c))
@@ -464,24 +537,15 @@ export default function AdminPage() {
     }
   };
 
-  // Delete Catalog (calls /api/delete-file + Firestore deleteDoc)
+  // Delete Catalog (calls /api/v1/catalogs/[id] with DELETE)
   const handleDeleteCatalog = async () => {
     if (!deletingItem) return;
     setIsDeleting(true);
     try {
-      // 1. Delete file in Cloudflare R2 if key exists
-      if (deletingItem.r2Key) {
-        await fetch('/api/delete-file', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: deletingItem.r2Key }),
-        });
-      }
+      await fetch(`/api/v1/catalogs/${deletingItem.id}`, {
+        method: 'DELETE',
+      });
 
-      // 2. Delete Firestore document
-      await deleteDoc(doc(db, 'catalogs', deletingItem.id));
-
-      // 3. Update local state
       setCatalogs((prev) => prev.filter((c) => c.id !== deletingItem.id));
       setDeletingItem(null);
     } catch (err) {

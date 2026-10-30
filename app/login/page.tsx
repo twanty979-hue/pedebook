@@ -1,16 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
-  GoogleAuthProvider,
-  signInWithPopup,
-} from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { auth } from "../src/lib/firebase";
 import { syncUserProfile } from "../src/lib/user-tracking";
+import { supabase, isSupabaseConfigured } from "../src/lib/supabase/client";
 
 type ActiveMode = "login" | "register" | "forgot";
 
@@ -31,26 +24,69 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      if (!isSupabaseConfigured()) {
+        throw new Error("Supabase ยังไม่ได้ตั้งค่าใน .env.local ครับ");
+      }
+
       if (mode === "login") {
-        const cred = await signInWithEmailAndPassword(auth, email, password);
-        if (cred.user) {
-          syncUserProfile(cred.user);
+        const { data, error: sbErr } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+        if (sbErr) throw sbErr;
+
+        if (data.user) {
+          syncUserProfile({
+            uid: data.user.id,
+            email: data.user.email,
+            displayName: data.user.user_metadata?.full_name || data.user.email?.split("@")[0],
+            photoURL: data.user.user_metadata?.avatar_url,
+          });
+          setSuccess("เข้าสู่ระบบสำเร็จแล้ว! กำลังนำคุณไปที่แดชบอร์ด...");
+          setTimeout(() => {
+            router.push("/dashboard");
+          }, 600);
         }
-        router.push("/");
       } else if (mode === "register") {
         if (password !== confirmPassword) {
           throw new Error("passwords-dont-match");
         }
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        if (cred.user) {
-          syncUserProfile(cred.user);
+
+        const { data, error: sbErr } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            data: { full_name: email.split("@")[0] },
+          },
+        });
+
+        if (sbErr) throw sbErr;
+
+        if (data.session) {
+          if (data.user) {
+            syncUserProfile({
+              uid: data.user.id,
+              email: data.user.email,
+              displayName: data.user.user_metadata?.full_name || data.user.email?.split("@")[0],
+            });
+          }
+          setSuccess("สมัครสมาชิกสำเร็จแล้ว! กำลังนำคุณไปที่แดชบอร์ด...");
+          setTimeout(() => {
+            router.push("/dashboard");
+          }, 1000);
+        } else {
+          setSuccess("สมัครสมาชิกสำเร็จแล้ว! กรุณาตรวจสอบอีเมลเพื่อยืนยันตัวตน (หากระบบเปิดยืนยัน) หรือเข้าสู่ระบบได้เลยครับ");
+          setTimeout(() => {
+            setMode("login");
+          }, 2500);
         }
-        setSuccess("สมัครสมาชิกสำเร็จแล้ว! ระบบกำลังนำคุณไปที่หน้าหลัก...");
-        setTimeout(() => {
-          router.push("/");
-        }, 1500);
       } else if (mode === "forgot") {
-        await sendPasswordResetEmail(auth, email);
+        const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (resetErr) throw resetErr;
+
         setSuccess("ส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลของคุณแล้ว กรุณาตรวจสอบกล่องจดหมายครับ");
         setEmail("");
         setMode("login");
@@ -59,16 +95,18 @@ export default function LoginPage() {
       console.error(err);
       if (err.message === "passwords-dont-match") {
         setError("รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกันครับ");
-      } else if (err.code === "auth/email-already-in-use") {
+      } else if (err.message?.includes("already registered") || err.message?.includes("User already registered")) {
         setError("อีเมลนี้ถูกใช้งานแล้วในระบบครับ");
-      } else if (err.code === "auth/weak-password") {
+      } else if (err.message?.includes("weak") || err.message?.includes("at least 6 characters")) {
         setError("รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษรครับ");
-      } else if (err.code === "auth/invalid-email") {
+      } else if (err.message?.includes("invalid email") || err.message?.includes("valid email")) {
         setError("รูปแบบอีเมลไม่ถูกต้องครับ");
-      } else if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+      } else if (err.message?.includes("Invalid login credentials")) {
         setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้งครับ");
+      } else if (err.message?.includes("Email not confirmed")) {
+        setError("อีเมลนี้ยังไม่ได้ยืนยัน กรุณาตรวจสอบกล่องจดหมายของคุณครับ");
       } else {
-        setError("เกิดข้อผิดพลาดขึ้น กรุณาลองใหม่อีกครั้งในภายหลังครับ");
+        setError(err.message || "เกิดข้อผิดพลาดในการดำเนินการ กรุณาลองใหม่อีกครั้ง");
       }
     } finally {
       setLoading(false);
@@ -79,23 +117,24 @@ export default function LoginPage() {
     setError(null);
     setSuccess(null);
     setLoading(true);
-    const provider = new GoogleAuthProvider();
 
     try {
-      const result = await signInWithPopup(auth, provider);
-      if (result.user) {
-        syncUserProfile(result.user);
+      if (!isSupabaseConfigured()) {
+        throw new Error("ระบบ Supabase ยังไม่ได้ตั้งค่า Keys ครับ");
       }
-      setSuccess("เข้าสู่ระบบด้วย Google สำเร็จแล้ว!");
-      setTimeout(() => {
-        router.push("/");
-      }, 800);
+
+      const redirectTo = `${window.location.origin}/dashboard`;
+      const { error: sbErr } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+        },
+      });
+
+      if (sbErr) throw sbErr;
     } catch (err: any) {
       console.error(err);
-      if (err.code !== "auth/popup-closed-by-user") {
-        setError("เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Google กรุณาลองใหม่อีกครั้งครับ");
-      }
-    } finally {
+      setError(err.message || "เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Google กรุณาลองใหม่อีกครั้งครับ");
       setLoading(false);
     }
   };
@@ -110,11 +149,9 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f6f4ee] p-4 font-sans text-[#17221c]">
-      {/* วงกลมเบลอพื้นหลังเลียนแบบหน้าแรก */}
       <div className="absolute left-1/2 top-1/2 h-[350px] w-[350px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#d3b894]/30 blur-[80px] sm:h-[500px] sm:w-[500px]" />
 
       <div className="relative z-10 w-full max-w-md rounded-3xl border border-[#e2dfd5] bg-white/80 p-8 shadow-[0_20px_50px_rgba(36,49,41,0.06)] backdrop-blur-md">
-        {/* โลโก้แบรนด์ */}
         <div className="mb-6 flex flex-col items-center justify-center gap-2">
           <a href="/" className="flex items-center gap-2.5">
             <img
@@ -167,12 +204,11 @@ export default function LoginPage() {
           </p>
         </header>
 
-        {/* ปุ่มลอกอินด้วย Google (เฉพาะโหมดเข้าสู่ระบบและสมัครสมาชิก) */}
         {mode !== "forgot" && (
           <div className="mb-5">
             <button
               type="button"
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push("/dashboard")}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#243129] px-4 py-3.5 text-sm font-bold text-[#e8dcc7] shadow-md transition-all hover:bg-[#314238] active:scale-[0.98] mb-3 cursor-pointer"
             >
               <span>🚀 เข้าใช้งานทันที (ไม่ต้องสมัครสมาชิก)</span>
@@ -182,7 +218,7 @@ export default function LoginPage() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#d9d7cd] bg-white px-4 py-3 text-sm font-semibold text-[#17221c] shadow-sm transition-all hover:bg-neutral-50 active:scale-[0.98] disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#d9d7cd] bg-white px-4 py-3 text-sm font-semibold text-[#17221c] shadow-sm transition-all hover:bg-neutral-50 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
                 <path
@@ -214,7 +250,6 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* ฟอร์มกรอกข้อมูลตามปกติ */}
         <form onSubmit={handleEmailAction} className="space-y-4">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-[#755a47] mb-1.5">
@@ -293,7 +328,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-[#243129] py-3 text-sm font-bold text-[#e8dcc7] shadow-[0_4px_12px_rgba(36,49,41,0.2)] transition hover:bg-[#314238] active:scale-[0.98] disabled:opacity-50"
+            className="w-full rounded-xl bg-[#243129] py-3 text-sm font-bold text-[#e8dcc7] shadow-[0_4px_12px_rgba(36,49,41,0.2)] transition hover:bg-[#314238] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
           >
             {loading ? "กำลังดำเนินการ..." : ""}
             {!loading && mode === "login" && "ลงชื่อเข้าใช้งาน"}
@@ -302,7 +337,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* เมนูเปลี่ยนโหมดด้านล่างสุด */}
         <div className="mt-6 text-center text-sm text-[#6e746f]">
           {mode === "login" && (
             <>
@@ -310,7 +344,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => changeMode("register")}
-                className="font-bold text-[#9a7257] hover:underline"
+                className="font-bold text-[#9a7257] hover:underline cursor-pointer"
                 disabled={loading}
               >
                 สมัครสมาชิก
@@ -324,7 +358,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => changeMode("login")}
-                className="font-bold text-[#9a7257] hover:underline"
+                className="font-bold text-[#9a7257] hover:underline cursor-pointer"
                 disabled={loading}
               >
                 เข้าสู่ระบบ
@@ -336,7 +370,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => changeMode("login")}
-              className="font-bold text-[#9a7257] hover:underline"
+              className="font-bold text-[#9a7257] hover:underline cursor-pointer"
               disabled={loading}
             >
               ย้อนกลับหน้าเข้าสู่ระบบ

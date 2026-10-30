@@ -220,7 +220,7 @@ CREATE TRIGGER trigger_team_member_limit
 
 -- 4.3 Stored Procedure to record page stay time atomically and update aggregates
 CREATE OR REPLACE FUNCTION public.record_page_stay_time(
-    p_catalog_id UUID,
+    p_catalog_id TEXT,
     p_page_number INT,
     p_duration_seconds NUMERIC,
     p_session_id TEXT,
@@ -229,8 +229,23 @@ CREATE OR REPLACE FUNCTION public.record_page_stay_time(
     p_referrer TEXT DEFAULT NULL
 )
 RETURNS VOID AS $$
+DECLARE
+    v_catalog_uuid UUID;
 BEGIN
-    -- 1. Insert into raw event log (capped duration at 600s to avoid idle outliers)
+    -- Check if p_catalog_id is already a valid UUID
+    IF p_catalog_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN
+        v_catalog_uuid := p_catalog_id::UUID;
+    ELSE
+        -- Lookup by slug
+        SELECT id INTO v_catalog_uuid FROM public.catalogs WHERE slug = p_catalog_id LIMIT 1;
+    END IF;
+
+    -- If still null, return
+    IF v_catalog_uuid IS NULL THEN
+        RETURN;
+    END IF;
+
+    -- 1. Insert into raw event log (fixed column order!)
     INSERT INTO public.page_analytics_logs (
         catalog_id,
         page_number,
@@ -240,10 +255,10 @@ BEGIN
         user_agent,
         referrer
     ) VALUES (
-        p_catalog_id,
+        v_catalog_uuid,
         p_page_number,
-        LEAST(p_duration_seconds, 600.00),
         p_session_id,
+        LEAST(p_duration_seconds, 600.00),
         p_device_type,
         p_user_agent,
         p_referrer
@@ -258,7 +273,7 @@ BEGIN
         avg_duration_seconds,
         updated_at
     ) VALUES (
-        p_catalog_id,
+        v_catalog_uuid,
         p_page_number,
         1,
         LEAST(p_duration_seconds, 600.00),
@@ -278,8 +293,9 @@ BEGIN
     -- 3. Increment overall catalog view count if first page
     IF p_page_number = 1 THEN
         UPDATE public.catalogs
-        SET total_views = total_views + 1
-        WHERE id = p_catalog_id;
+        SET total_views = total_views + 1,
+            updated_at = NOW()
+        WHERE id = v_catalog_uuid;
     END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
