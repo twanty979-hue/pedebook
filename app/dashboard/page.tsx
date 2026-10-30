@@ -686,6 +686,32 @@ export default function DashboardPage() {
                   <span className="text-[10px] text-[#6e746f] leading-none">{user.email}</span>
                 </div>
               </div>
+              {/* Language Switcher TH / EN */}
+              <div className="inline-flex items-center bg-[#eae6dc] rounded-full p-0.5 border border-[#d9d5cb] text-[10px] font-bold shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    document.cookie = 'pedebook_lang=th; path=/; max-age=31536000; SameSite=Lax';
+                    window.location.href = '/';
+                  }}
+                  className="px-2 py-0.5 rounded-full bg-[#243129] text-[#e8dcc7] shadow-xs cursor-pointer"
+                  title="หน้าแรกภาษาไทย"
+                >
+                  TH
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    document.cookie = 'pedebook_lang=en; path=/; max-age=31536000; SameSite=Lax';
+                    window.location.href = '/en';
+                  }}
+                  className="px-2 py-0.5 rounded-full text-[#6e746f] hover:text-[#17221c] cursor-pointer"
+                  title="English Homepage"
+                >
+                  EN
+                </button>
+              </div>
+
               <a
                 href="/admin"
                 className="flex items-center gap-1.5 rounded-full border border-[#243129]/20 bg-white/80 px-3.5 py-1.5 text-xs font-bold text-[#243129] shadow-xs hover:bg-[#243129] hover:text-[#e8dcc7] transition-all cursor-pointer"

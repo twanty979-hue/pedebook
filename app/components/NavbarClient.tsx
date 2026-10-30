@@ -201,6 +201,9 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
               <span>{copy.admin}</span>
             </Link>
 
+            {/* สวิตช์เปลี่ยนภาษา TH / EN */}
+            <LanguageToggle currentLocale={locale} />
+
             <button
               onClick={handleSignOut}
               className="rounded-full border border-[#d9d7cd] px-4 py-1.5 text-xs font-bold text-[#755a47] hover:bg-[#243129] hover:text-[#e8dcc7] hover:border-[#243129] transition-all cursor-pointer"
@@ -209,7 +212,7 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <Link
               href="/pricing"
               className="hidden text-sm font-semibold text-[#755a47] transition hover:text-[#243129] sm:block"
@@ -224,17 +227,12 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
               {copy.signIn}
             </Link>
 
-            <Link
-              href={copy.languageHref}
-              hrefLang={isEnglish ? 'th' : 'en'}
-              className="text-sm font-semibold text-[#755a47] transition hover:text-[#243129]"
-            >
-              {copy.languageLabel}
-            </Link>
+            {/* สวิตช์เปลี่ยนภาษา TH / EN */}
+            <LanguageToggle currentLocale={locale} />
 
             <Link
               href="/dashboard"
-              className="rounded-full bg-[#243129] px-6 py-2.5 text-sm font-bold text-[#e8dcc7] shadow-[0_4px_12px_rgba(36,49,41,0.2)] transition hover:bg-[#314238]"
+              className="rounded-full bg-[#243129] px-5 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-bold text-[#e8dcc7] shadow-[0_4px_12px_rgba(36,49,41,0.2)] transition hover:bg-[#314238]"
             >
               {copy.start}
             </Link>
@@ -242,5 +240,46 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
         )}
       </div>
     </nav>
+  );
+}
+
+function LanguageToggle({ currentLocale }: { currentLocale: 'th' | 'en' }) {
+  const switchLang = (newLang: 'th' | 'en') => {
+    // บันทึกคุกกี้จำภาษาถาวร 1 ปี (Permanent manual choice)
+    document.cookie = `pedebook_lang=${newLang}; path=/; max-age=31536000; SameSite=Lax`;
+    if (newLang === 'en') {
+      window.location.href = '/en';
+    } else {
+      window.location.href = '/';
+    }
+  };
+
+  return (
+    <div className="inline-flex items-center bg-[#eae6dc] rounded-full p-0.5 border border-[#d9d5cb] text-[11px] font-bold shadow-xs">
+      <button
+        type="button"
+        onClick={() => switchLang('th')}
+        className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
+          currentLocale === 'th'
+            ? 'bg-[#243129] text-[#e8dcc7] shadow-xs'
+            : 'text-[#6e746f] hover:text-[#17221c]'
+        }`}
+        title="เปลี่ยนเป็นภาษาไทย"
+      >
+        TH
+      </button>
+      <button
+        type="button"
+        onClick={() => switchLang('en')}
+        className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
+          currentLocale === 'en'
+            ? 'bg-[#243129] text-[#e8dcc7] shadow-xs'
+            : 'text-[#6e746f] hover:text-[#17221c]'
+        }`}
+        title="Switch to English"
+      >
+        EN
+      </button>
+    </div>
   );
 }
