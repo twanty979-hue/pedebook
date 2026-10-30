@@ -48,6 +48,19 @@ export default function NavbarClient({ locale = 'th' }: NavbarClientProps) {
     async function checkAuth() {
       if (isSupabaseConfigured()) {
         try {
+          // หาก Supabase redirect กลับมาที่หน้าแรกพร้อม code ให้แลกเปลี่ยน session และพาไป dashboard ทันที
+          if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            if (code) {
+              const { data: exchangeData } = await supabase.auth.exchangeCodeForSession(code);
+              if (exchangeData?.session?.user && isMounted) {
+                window.location.href = '/dashboard';
+                return;
+              }
+            }
+          }
+
           const {
             data: { session },
           } = await supabase.auth.getSession();
