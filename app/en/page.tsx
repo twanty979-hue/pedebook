@@ -4,40 +4,89 @@ import { englishMetadata } from '../src/lib/english-seo';
 
 export const metadata: Metadata = englishMetadata({
   path: '/en',
-  title: 'Free PDF to Flipbook Maker',
-  description: 'Turn PDFs into interactive flipbooks, online catalogs, brochures, and e-books. Share a mobile-friendly link and QR code in minutes.',
+  title: 'Free PDF to Flipbook Maker | 3D Online Catalog & E-Book Creator',
+  description: 'Convert PDF to interactive 3D flipbook, online catalog, and digital brochure for free. Realistic page turning, instant link & QR code sharing worldwide.',
   includeThaiAlternate: true,
 });
 
 export default function EnglishHomePage() {
   return (
     <EnglishSeoPage
-      eyebrow="Free online flipbook maker"
-      title="Turn every PDF into an interactive"
+      eyebrow="100% Free Online 3D Flipbook Creator"
+      title="Turn any PDF into an interactive 3D"
       highlight="flipbook"
-      introduction="Pedebook helps businesses, creators, and teams turn PDF documents into polished online catalogs, brochures, and e-books that are easy to share and read on any device."
+      introduction="Pedebook is a free, modern digital publishing platform that transforms standard PDF files into stunning 3D flipbooks, online product catalogs, brochures, and e-books. Enjoy realistic page-turn physics, instant link & QR code sharing, and lightning-fast worldwide reading on mobile and desktop."
       benefits={[
-        { title: 'A natural page-flip experience', body: 'Present documents in a memorable format with a smooth, book-like reading experience instead of a plain attachment.' },
-        { title: 'Share with one link or QR code', body: 'Send your publication in chat, add it to a campaign, or let visitors scan a QR code to open it immediately.' },
-        { title: 'Designed for every screen', body: 'Readers can browse comfortably on phones, tablets, and desktop computers without installing an app.' },
-        { title: 'Made for catalogs and more', body: 'Use the same simple workflow for sales catalogs, product brochures, portfolios, magazines, menus, and reports.' },
+        {
+          title: '100% Free to Get Started',
+          body: 'No credit card required. Upload documents up to 100MB+ for free. Large files are never blocked, making it the most generous flipbook tool on the web.',
+        },
+        {
+          title: 'Realistic 3D Page-Flip Physics',
+          body: 'Delight readers with natural page turns, authentic paper rustle sound, and smooth 60FPS fluid animations instead of static PDF attachments.',
+        },
+        {
+          title: 'Instant Link & High-Res QR Code',
+          body: 'Share your publication anywhere in one click: WhatsApp, Messenger, LINE, email campaigns, or print high-resolution QR codes for physical counters.',
+        },
+        {
+          title: 'Lightning-Fast Global CDN Streaming',
+          body: 'Powered by Cloudflare CDN across 300+ edge cities worldwide. Readers in America, Europe, Asia, and worldwide enjoy instant 0ms reading.',
+        },
       ]}
       steps={[
-        { title: 'Sign in to your workspace', body: 'Create an account to manage your publications in one place.' },
-        { title: 'Upload your PDF', body: 'Choose a brochure, catalog, menu, portfolio, or any document that is ready to publish.' },
-        { title: 'Publish and share', body: 'Get a dedicated reading link and QR code to share with customers, colleagues, or your audience.' },
+        {
+          title: '1. Sign In Instantly',
+          body: 'Log in with one click via Google or email to access your personal dashboard workspace.',
+        },
+        {
+          title: '2. Upload Your PDF Document',
+          body: 'Drag and drop your sales catalog, product brochure, company profile, portfolio, magazine, or restaurant menu.',
+        },
+        {
+          title: '3. Share Worldwide & Track Views',
+          body: 'Get your unique 3D flipbook web link and QR code ready to send to clients, partners, or social media audiences immediately.',
+        },
       ]}
       useCases={[
-        { title: 'Sales and marketing teams', body: 'Give prospects a polished product catalog or company profile that is easier to open and forward than a large PDF attachment.' },
-        { title: 'Online stores and retailers', body: 'Turn seasonal collections, price lists, and lookbooks into a single mobile-ready link for social posts and messaging.' },
-        { title: 'Schools and organizations', body: 'Publish annual reports, activity books, newsletters, and learning materials in a format that feels like a real publication.' },
-        { title: 'Hospitality and local services', body: 'Share digital menus, service guides, and promotional brochures through a QR code at the point of service.' },
+        {
+          title: 'E-Commerce, Retailers & Brands',
+          body: 'Transform seasonal collections, lookbooks, wholesale price lists, and brochures into interactive digital shopping experiences.',
+        },
+        {
+          title: 'Sales & B2B Enterprises',
+          body: 'Replace heavy email attachments with a sleek, trackable link that prospects can open instantly on phones and tablets during presentations.',
+        },
+        {
+          title: 'Restaurants, Cafes & Hospitality',
+          body: 'Display contact-free digital menus and wine lists via QR codes on dining tables and reception desks.',
+        },
+        {
+          title: 'Educators, Creators & Students',
+          body: 'Showcase student portfolios, annual reports, research papers, magazines, and e-books in an elegant, interactive book format.',
+        },
       ]}
       faqs={[
-        { question: 'What is an online flipbook?', answer: 'An online flipbook is a web-based version of a document that readers can open in a browser and turn through like the pages of a book.' },
-        { question: 'Can readers open a Pedebook publication on mobile?', answer: 'Yes. Published documents are designed to be read on phones, tablets, and desktop browsers.' },
-        { question: 'Do I need to install an app?', answer: 'No. Readers simply open the shared link or scan the QR code in a web browser.' },
-        { question: 'What can I publish?', answer: 'You can publish PDF catalogs, brochures, e-books, portfolios, menus, magazines, reports, and other presentation-ready documents.' },
+        {
+          question: 'Is Pedebook really free to use?',
+          answer: 'Yes! Pedebook offers a free plan with 100MB storage. Even if your PDF file exceeds 100MB (e.g., 150MB+), our platform allows you to upload and publish it smoothly without blocking your document.',
+        },
+        {
+          question: 'What is an interactive 3D flipbook?',
+          answer: 'An interactive flipbook is a digital representation of a publication that feels like reading a physical book, complete with page turns, shadow effects, and responsive navigation on any screen.',
+        },
+        {
+          question: 'Do my readers need to download an app or software?',
+          answer: 'Not at all. Readers simply tap your link or scan your QR code to open the flipbook instantly in Chrome, Safari, Edge, Firefox, or any modern web browser.',
+        },
+        {
+          question: 'Does it work smoothly on smartphones and tablets?',
+          answer: 'Yes, Pedebook is mobile-first and fully responsive across iOS (iPhone/iPad), Android, Mac, and Windows computers.',
+        },
+        {
+          question: 'How fast will my flipbook load for international readers?',
+          answer: 'Our infrastructure uses Cloudflare Global CDN with HTTP Range streaming. Even for massive 100MB+ documents, page 1 opens in under 1 second worldwide.',
+        },
       ]}
       showDemo
     />

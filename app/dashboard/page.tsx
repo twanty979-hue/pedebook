@@ -499,7 +499,7 @@ export default function DashboardPage() {
           bgValue: 'auto',
           isFloating: false,
           isPublic: true,
-          allowIndexing: false,
+          allowIndexing: true,
           seoDescription: `อ่าน ${file.name.replace(/\.pdf$/i, '')} ออนไลน์แบบ Flipbook แชร์ลิงก์และ QR Code ได้ทันที`,
         }),
       });

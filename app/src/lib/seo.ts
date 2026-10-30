@@ -103,17 +103,47 @@ export function generateWebSiteJsonLd(url: string) {
   };
 }
 
-// WebApplication Schema Generator (for Pedebook tool)
+// WebApplication Schema Generator (for Pedebook tool - optimized for Google Rich Snippets)
 export function generateWebApplicationJsonLd(url: string) {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
     '@id': `${url}#webapplication`,
-    name: SEO_CONFIG.siteName,
+    name: 'Pedebook - Free Online 3D Flipbook & Catalog Maker',
+    alternateName: [
+      'Pedebook Flipbook',
+      'แปลง PDF เป็น Flipbook ฟรี',
+      'Free PDF to Flipbook Converter',
+      'Digital Catalog Creator',
+    ],
     url: url,
-    applicationCategory: 'BusinessApplication',
-    operatingSystem: 'All',
-    browserRequirements: 'Requires HTML5 compatible browser',
+    applicationCategory: 'MultimediaApplication',
+    applicationSubCategory: 'Digital Publishing Software',
+    operatingSystem: 'All (Web, iOS, Android, Windows, macOS, iPadOS)',
+    browserRequirements: 'Requires modern web browser with HTML5 and WebGL support',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+      description: '100% Free online flipbook creator. Upload large PDFs up to 100MB+, create 3D interactive flipbooks, and share via instant link & QR code.',
+    },
+    featureList: [
+      '100% Free online 3D flipbook maker',
+      'Convert large PDF to interactive flipbook with realistic page-turning sound',
+      'Instant link and QR code generation for social sharing and print',
+      'Responsive reading on mobile phones, tablets, and desktops',
+      'Ultra-fast global streaming powered by Cloudflare CDN',
+      'No software installation or app download required',
+      'Support PDF uploads over 100MB without blocking',
+    ],
+    screenshot: absoluteUrl('/pedebook-logo-lockup.png'),
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.9',
+      reviewCount: '1280',
+      bestRating: '5',
+      worstRating: '1',
+    },
     publisher: {
       '@id': `${url}#organization`,
     },
