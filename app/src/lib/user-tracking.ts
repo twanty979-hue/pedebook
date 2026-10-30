@@ -13,22 +13,27 @@ export interface UserProfileRecord {
 
 const DEFAULT_ADMIN_PIN = 'admin1234';
 
+const DEFAULT_ADMIN_EMAILS = [
+  'std.65122420112@ubru.ac.th',
+  'boss@pedebook.com',
+  'admin@pedebook.com',
+];
+
 /**
  * Checks if an email is in the admin email whitelist.
  */
 export function isAdminEmail(email?: string | null): boolean {
   if (!email) return false;
   const adminEmailsEnv = process.env.NEXT_PUBLIC_ADMIN_EMAILS || '';
-  const adminEmails = adminEmailsEnv
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
+  const adminEmails = [
+    ...DEFAULT_ADMIN_EMAILS,
+    ...adminEmailsEnv
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  ];
 
-  if (adminEmails.length > 0 && adminEmails.includes(email.toLowerCase())) {
-    return true;
-  }
-
-  return false;
+  return adminEmails.includes(email.toLowerCase());
 }
 
 /**
