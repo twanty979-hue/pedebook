@@ -87,6 +87,9 @@ export const metadata: Metadata = {
   verification: SEO_CONFIG.googleSiteVerification
     ? { google: SEO_CONFIG.googleSiteVerification }
     : undefined,
+  other: {
+    'google-adsense-account': 'ca-pub-3349574408761231',
+  },
 };
 
 export default function RootLayout({
@@ -99,6 +102,13 @@ export default function RootLayout({
       lang="th"
       className="h-full antialiased"
     >
+      <head>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3349574408761231"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>
   );
