@@ -7,7 +7,6 @@ import dynamic from 'next/dynamic';
 import { QRCodeCanvas } from 'qrcode.react';
 import { syncUserProfile } from '../src/lib/user-tracking';
 import { PLANS, validateUploadLimits } from '../src/lib/plans';
-import PageAnalyticsBoard from '../components/PageAnalyticsBoard';
 import { supabase, isSupabaseConfigured } from '../src/lib/supabase/client';
 
 export interface DashboardUser {
@@ -99,7 +98,6 @@ export default function DashboardPage() {
   const [replacing, setReplacing] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [qrModal, setQrModal] = useState<{ slug: string; fileName: string } | null>(null);
-  const [analyticsModal, setAnalyticsModal] = useState<CatalogItem | null>(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [editModal, setEditModal] = useState<CatalogItem | null>(null);
   const [editName, setEditName] = useState('');
@@ -815,15 +813,27 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <button
-            onClick={() => setUploadModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#243129] text-[#f7f5f0] shadow-md hover:bg-[#314238] hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer font-bold text-sm tracking-wide shrink-0 border border-[#3b4d41]"
-          >
-            <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            <span>สร้างแค็ตตาล็อกใหม่</span>
-          </button>
+          <div className="flex items-center gap-2.5">
+            <Link
+              href="/dashboard/analytics"
+              className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-[#d9d7cd] bg-white hover:bg-neutral-50 text-[#755a47] font-bold text-xs tracking-wide transition-all shadow-xs cursor-pointer"
+            >
+              <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+              </svg>
+              <span>ศูนย์วิเคราะห์สถิติ</span>
+            </Link>
+
+            <button
+              onClick={() => setUploadModalOpen(true)}
+              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#243129] text-[#f7f5f0] shadow-md hover:bg-[#314238] hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer font-bold text-sm tracking-wide shrink-0 border border-[#3b4d41]"
+            >
+              <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              <span>สร้างแค็ตตาล็อกใหม่</span>
+            </button>
+          </div>
         </div>
 
         {/* ── Catalog Grid (Full Width) ── */}
@@ -966,9 +976,9 @@ export default function DashboardPage() {
                   <div className="border-t border-[#e2dfd5] bg-[#faf8f5] px-3 py-2.5 flex items-center justify-between text-[#6e746f]">
                     {/* ปุ่มสถิติ */}
                     <button
-                      onClick={() => setAnalyticsModal(item)}
+                      onClick={() => router.push(`/dashboard/analytics?id=${item.id}`)}
                       className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-emerald-100 hover:text-emerald-800 text-[11px] font-medium transition cursor-pointer"
-                      title="ดูสถิติการเปิดอ่านรายหน้า"
+                      title="ดูสถิติเชิงลึกของเล่มนี้"
                     >
                       <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
@@ -1431,15 +1441,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* ── Modal สถิติการเปิดอ่านรายหน้า (Page Analytics) ── */}
-      {analyticsModal && (
-        <PageAnalyticsBoard
-          catalogId={analyticsModal.id}
-          catalogTitle={analyticsModal.fileName.replace(/\.pdf$/i, '')}
-          onClose={() => setAnalyticsModal(null)}
-        />
       )}
     </div>
   );
