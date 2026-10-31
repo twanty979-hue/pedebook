@@ -127,7 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: isSelected ? const Color(0xFF10B981) : const Color(0xFFE5E2D9),
+                                color: isSelected ? const Color(0xFF1F7A54) : const Color(0xFFE5E2D9),
                                 width: isSelected ? 2.5 : 1,
                               ),
                             ),
@@ -231,7 +231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF10B981),
+                              backgroundColor: const Color(0xFF1F7A54),
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -307,7 +307,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 value: 0.296,
                 minHeight: 8,
                 backgroundColor: Color(0xFFF0EFE9),
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1F7A54)),
               ),
             ),
             const SizedBox(height: 16),
@@ -556,13 +556,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: Color(0xFFF8F7F3),
+        backgroundColor: Color(0xFFFBFBF8),
         body: Center(child: CupertinoActivityIndicator(radius: 14)),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F7F3),
+      backgroundColor: const Color(0xFFFBFBF8),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
@@ -616,7 +616,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         height: 54,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFF10B981), width: 2),
+                          border: Border.all(color: const Color(0xFF1F7A54), width: 2),
                         ),
                         child: ClipOval(
                           child: _avatarUrl != null && _avatarUrl!.isNotEmpty
@@ -650,7 +650,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                                    color: const Color(0xFF1F7A54).withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: const Text(
@@ -745,7 +745,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           value: 0.296,
                           minHeight: 5.5,
                           backgroundColor: Color(0xFFF0EFE9),
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1F7A54)),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -865,9 +865,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F7F3),
+        color: const Color(0xFFFBFBF8),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E2D9)),
+        border: Border.all(color: const Color(0xFFE8E5DD)),
       ),
       child: Row(
         children: [
@@ -879,7 +879,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF17221C)),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1B2820)),
                 ),
                 const SizedBox(height: 1),
                 Text(
@@ -904,17 +904,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       leading: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: const Color(0xFFF6F4EE),
+          color: const Color(0xFFF5F3EC),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: const Color(0xFF243129), size: 17),
+        child: Icon(icon, color: const Color(0xFF1B2820), size: 17),
       ),
       title: Text(
         title,
         style: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.bold,
-          color: Color(0xFF17221C),
+          color: Color(0xFF1B2820),
         ),
       ),
       subtitle: Text(

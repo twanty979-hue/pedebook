@@ -73,25 +73,15 @@ class _HomeScreenState extends State<HomeScreen> {
     final totalItems = _filteredCatalogs.length + (showAddCard ? 1 : 0);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F7F3),
-      // ── Floating Action Button (สร้างสมุดใหม่ / อัปโหลด PDF) ──
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openUploadWeb,
-        backgroundColor: const Color(0xFF243129),
-        foregroundColor: const Color(0xFFF7F5F0),
-        elevation: 6,
-        shape: const CircleBorder(),
-        tooltip: 'สร้างสมุดใหม่ / อัปโหลด PDF',
-        child: const Icon(CupertinoIcons.plus, size: 28),
-      ),
+      backgroundColor: const Color(0xFFFBFBF8),
       body: SafeArea(
         child: RefreshIndicator(
-          color: const Color(0xFF243129),
+          color: const Color(0xFF1B2820),
           onRefresh: _loadCatalogs,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              // ── 1. Top Bar: Official Pedebook Logo + Cloud Sync Badge (Matching Web) ──
+              // ── 1. Top Bar: Official Pedebook Logo + Refined Status Pill ──
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
@@ -104,28 +94,29 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         'Pedebook',
                         style: GoogleFonts.prompt(
-                          fontSize: 20,
+                          fontSize: 21,
                           fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
-                          color: const Color(0xFF17221C),
+                          letterSpacing: -0.6,
+                          color: const Color(0xFF15221B),
                         ),
                       ),
                       const Spacer(),
-                      // Cloud Sync Pill Badge (Exact style from screenshot)
+                      // Elegant Cloud Sync Status Pill
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                          color: const Color(0xFFEBF5F0),
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFD4EADB), width: 0.8),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              width: 7,
-                              height: 7,
+                              width: 6,
+                              height: 6,
                               decoration: const BoxDecoration(
-                                color: Color(0xFF10B981),
+                                color: Color(0xFF1F7A54),
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -133,9 +124,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             Text(
                               'Cloud Sync',
                               style: GoogleFonts.prompt(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF065F46),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1B6B48),
+                                letterSpacing: 0.2,
                               ),
                             ),
                           ],
@@ -143,13 +135,28 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(width: 8),
                       // Refresh Button
-                      IconButton(
-                        onPressed: _loadCatalogs,
-                        icon: const Icon(CupertinoIcons.arrow_clockwise, size: 19),
-                        color: const Color(0xFF243129),
-                        tooltip: 'รีเฟรชข้อมูลล่าสุด',
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFE8E5DC), width: 0.8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.02),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: IconButton(
+                          onPressed: _loadCatalogs,
+                          icon: const Icon(CupertinoIcons.arrow_clockwise, size: 15),
+                          color: const Color(0xFF1B2820),
+                          tooltip: 'รีเฟรชข้อมูลล่าสุด',
+                          padding: EdgeInsets.zero,
+                        ),
                       ),
                     ],
                   ),
@@ -159,20 +166,13 @@ class _HomeScreenState extends State<HomeScreen> {
               // ── 2. Compact iOS Search Bar ──
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
                   child: Container(
-                    height: 38,
+                    height: 40,
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE5E2D9)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 4,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
+                      color: const Color(0xFFF3F1EC),
+                      borderRadius: BorderRadius.circular(13),
+                      border: Border.all(color: const Color(0xFFE6E3DA), width: 0.8),
                     ),
                     child: TextField(
                       controller: _searchController,
@@ -182,11 +182,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           _filterCatalogs();
                         });
                       },
-                      style: GoogleFonts.prompt(fontSize: 13),
+                      style: GoogleFonts.prompt(fontSize: 13, color: const Color(0xFF15221B)),
                       decoration: InputDecoration(
                         hintText: 'ค้นหาสมุดแค็ตตาล็อก...',
-                        hintStyle: GoogleFonts.prompt(fontSize: 12.5, color: Colors.grey.shade400),
-                        prefixIcon: const Icon(CupertinoIcons.search, size: 16, color: Color(0xFF9E9D97)),
+                        hintStyle: GoogleFonts.prompt(fontSize: 12.5, color: const Color(0xFFA0A5A0)),
+                        prefixIcon: const Icon(CupertinoIcons.search, size: 16, color: Color(0xFF8F958F)),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
                                 icon: const Icon(CupertinoIcons.clear_circled_solid, size: 15, color: Colors.grey),
@@ -200,14 +200,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               )
                             : null,
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
                       ),
                     ),
                   ),
                 ),
               ),
 
-              // ── 3. Section Title with Book Count & Storage Pills (Exact Web Dashboard Style) ──
+              // ── 3. Section Title with Book Count & Storage Pills ──
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(18, 6, 18, 12),
@@ -219,53 +219,65 @@ class _HomeScreenState extends State<HomeScreen> {
                           Text(
                             'แค็ตตาล็อกของฉัน',
                             style: GoogleFonts.prompt(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF17221C),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF15221B),
+                              letterSpacing: -0.3,
                             ),
                           ),
                           const SizedBox(width: 8),
-                          // Count badge
+                          // Unified Count & Size Badge
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEFECE6),
-                              borderRadius: BorderRadius.circular(10),
+                              color: const Color(0xFFEFECE5),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              '${_allCatalogs.length} เล่ม',
+                              '${_allCatalogs.length} เล่ม • $totalSizeMB MB',
                               style: GoogleFonts.prompt(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF4B5563),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF5A635D),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          // Size badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEFECE6),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '$totalSizeMB MB',
-                              style: GoogleFonts.prompt(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF4B5563),
+                          const Spacer(),
+                          // Quick Header Action Button: [+ เพิ่มสมุด]
+                          InkWell(
+                            onTap: _openUploadWeb,
+                            borderRadius: BorderRadius.circular(9),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1B2820),
+                                borderRadius: BorderRadius.circular(9),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(CupertinoIcons.plus, size: 11, color: Colors.white),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    'เพิ่มสมุด',
+                                    style: GoogleFonts.prompt(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
                         'จัดการและเผยแพร่สมุดดิจิทัล 3D Flipbook ของคุณ',
                         style: GoogleFonts.prompt(
                           fontSize: 11,
-                          color: const Color(0xFF6E746F),
+                          color: const Color(0xFF757C76),
                         ),
                       ),
                     ],
@@ -339,60 +351,64 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// ── Exact Dashed "+ เพิ่มสมุดใหม่" Card from Web Dashboard ──
+  /// ── Refined Studio "+ เพิ่มสมุดใหม่" Drop Card ──
   Widget _buildAddCatalogCard() {
     return InkWell(
       onTap: _openUploadWeb,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: const Color(0xFFD9D7CD),
-            width: 1.5,
-            style: BorderStyle.solid,
+            color: const Color(0xFFDDD9CF),
+            width: 1.2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: const Color(0xFF1B2820).withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 52,
-              height: 52,
+              width: 48,
+              height: 48,
               decoration: const BoxDecoration(
-                color: Color(0xFFE8F5E9),
+                color: Color(0xFFEBF5F0),
                 shape: BoxShape.circle,
               ),
               child: const Center(
-                child: Icon(CupertinoIcons.plus, color: Color(0xFF10B981), size: 28),
+                child: Icon(
+                  CupertinoIcons.arrow_up_doc_fill,
+                  color: Color(0xFF1F7A54),
+                  size: 22,
+                ),
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Text(
               '+ เพิ่มสมุดใหม่',
               style: GoogleFonts.prompt(
-                fontSize: 13.5,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF17221C),
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF15221B),
+                letterSpacing: -0.2,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 5),
             Text(
-              'คลิกเพื่อเลือกไฟล์ หรือลากไฟล์ PDF มาวางตรงนี้',
+              'แตะเพื่อเลือกไฟล์ PDF\nหรือลากไฟล์มาวางตรงนี้',
               style: GoogleFonts.prompt(
                 fontSize: 10.5,
                 color: const Color(0xFF6E746F),
-                height: 1.3,
+                height: 1.35,
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -401,20 +417,20 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
-                borderRadius: BorderRadius.circular(12),
+                color: const Color(0xFFEBF5F0),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.bolt_rounded, size: 12, color: Color(0xFF065F46)),
+                  const Icon(Icons.bolt_rounded, size: 12, color: Color(0xFF1F7A54)),
                   const SizedBox(width: 3),
                   Text(
                     'ไม่จำกัดขนาดไฟล์',
                     style: GoogleFonts.prompt(
                       fontSize: 9.5,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF065F46),
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1B6B48),
                     ),
                   ),
                 ],

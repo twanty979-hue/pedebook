@@ -172,63 +172,86 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final newPct = 100 - returningPct;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F7F3),
+      backgroundColor: const Color(0xFFFBFBF8),
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CupertinoActivityIndicator(radius: 14))
             : RefreshIndicator(
-                color: const Color(0xFF243129),
+                color: const Color(0xFF1B2820),
                 onRefresh: _loadData,
                 child: CustomScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
-                    // ── 1. Compact iOS Top Bar ──
+                    // ── 1. Top Bar: Header + Live Indicator + Circular Refresh ──
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                        padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               'สถิติผู้อ่าน',
                               style: GoogleFonts.prompt(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                color: const Color(0xFF17221C),
-                                letterSpacing: -0.5,
+                                fontSize: 21,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF15221B),
+                                letterSpacing: -0.6,
                               ),
                             ),
                             Row(
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                                    color: const Color(0xFFEBF5F0),
                                     borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: const Color(0xFFD4EADB), width: 0.8),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.circle, size: 6, color: Color(0xFF10B981)),
-                                      const SizedBox(width: 4),
+                                      Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF1F7A54),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
                                       Text(
                                         'เรียลไทม์',
                                         style: GoogleFonts.prompt(
-                                          color: const Color(0xFF065F46),
+                                          color: const Color(0xFF1B6B48),
                                           fontSize: 10.5,
-                                          fontWeight: FontWeight.bold,
+                                          fontWeight: FontWeight.w700,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                IconButton(
-                                  onPressed: _loadData,
-                                  icon: const Icon(CupertinoIcons.arrow_clockwise, size: 18),
-                                  color: const Color(0xFF243129),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: const Color(0xFFE8E5DC), width: 0.8),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.02),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                  child: IconButton(
+                                    onPressed: _loadData,
+                                    icon: const Icon(CupertinoIcons.arrow_clockwise, size: 15),
+                                    color: const Color(0xFF1B2820),
+                                    padding: EdgeInsets.zero,
+                                  ),
                                 ),
                               ],
                             ),
@@ -237,108 +260,186 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       ),
                     ),
 
-                    // ── 2. Unified Compact Executive Card ──
+                    // ── 2. Executive 2x2 Metric Grid ──
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildMetricTile(
+                                    title: 'ยอดเปิดอ่านสะสม',
+                                    value: '$totalViews',
+                                    unit: 'ครั้ง',
+                                    icon: CupertinoIcons.eye_fill,
+                                    iconColor: const Color(0xFF1B2820),
+                                    bgColor: const Color(0xFFF5F3EC),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _buildMetricTile(
+                                    title: 'ผู้อ่านจริง (Unique)',
+                                    value: '${totalUnique.clamp(1, 9999)}',
+                                    unit: 'คน',
+                                    icon: CupertinoIcons.person_2_fill,
+                                    iconColor: const Color(0xFF1F7A54),
+                                    bgColor: const Color(0xFFEBF5F0),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildMetricTile(
+                                    title: 'เฉลี่ยต่อเล่ม',
+                                    value: '$avgViews',
+                                    unit: 'วิว/เล่ม',
+                                    icon: CupertinoIcons.chart_bar_alt_fill,
+                                    iconColor: const Color(0xFF8C6648),
+                                    bgColor: const Color(0xFFF7F4EE),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _buildMetricTile(
+                                    title: 'สมุดทั้งหมด',
+                                    value: '${_catalogs.length}',
+                                    unit: 'เล่ม',
+                                    icon: CupertinoIcons.book_fill,
+                                    iconColor: const Color(0xFF3E4D43),
+                                    bgColor: const Color(0xFFF1F0EA),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SliverToBoxAdapter(child: SizedBox(height: 12)),
+
+                    // ── 3. Audience Retention Card ──
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Container(
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: const Color(0xFFE5E2D9), width: 1),
+                            border: Border.all(color: const Color(0xFFECE9E0), width: 1),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.02),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                                color: const Color(0xFF1B2820).withValues(alpha: 0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
                               ),
                             ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // 4 Stats in 1 Row
                               Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  _buildCompactStat(
-                                    value: '$totalViews',
-                                    label: 'ยอดเปิดอ่าน',
-                                    color: const Color(0xFF243129),
+                                  Text(
+                                    'สัดส่วนผู้อ่าน (Audience Retention)',
+                                    style: GoogleFonts.prompt(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF15221B),
+                                    ),
                                   ),
-                                  _buildVerticalDivider(),
-                                  _buildCompactStat(
-                                    value: '${totalUnique.clamp(1, 9999)}',
-                                    label: 'คนอ่านจริง',
-                                    color: const Color(0xFF10B981),
-                                  ),
-                                  _buildVerticalDivider(),
-                                  _buildCompactStat(
-                                    value: '$avgViews',
-                                    label: 'เฉลี่ย/เล่ม',
-                                    color: const Color(0xFF755A47),
-                                  ),
-                                  _buildVerticalDivider(),
-                                  _buildCompactStat(
-                                    value: '${_catalogs.length}',
-                                    label: 'สมุดทั้งหมด',
-                                    color: const Color(0xFF17221C),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEBF5F0),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      'กลับมาอ่าน $returningPct%',
+                                      style: GoogleFonts.prompt(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xFF1B6B48),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 12),
-                              const Divider(height: 1, thickness: 0.8),
-                              const SizedBox(height: 10),
-
-                              // Returning Readers Bar
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'ผู้อ่านใหม่ vs ผู้อ่านเดิม (New vs Returning)',
-                                    style: GoogleFonts.prompt(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF17221C),
-                                    ),
-                                  ),
-                                  Text(
-                                    'คนเดิม $returningPct%',
-                                    style: GoogleFonts.prompt(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF10B981),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
+                              // Multi-segment Bar
                               ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      flex: newPct,
-                                      child: Container(height: 6, color: const Color(0xFF10B981)),
-                                    ),
-                                    Expanded(
-                                      flex: returningPct,
-                                      child: Container(height: 6, color: const Color(0xFF243129)),
-                                    ),
-                                  ],
+                                borderRadius: BorderRadius.circular(6),
+                                child: SizedBox(
+                                  height: 8,
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        flex: returningPct,
+                                        child: Container(color: const Color(0xFF1F7A54)),
+                                      ),
+                                      Expanded(
+                                        flex: newPct,
+                                        child: Container(color: const Color(0xFF1B2820)),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 12),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    '🌱 ผู้อ่านใหม่: $newPct%',
-                                    style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF1F7A54),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        'กลับมาอ่านซ้ำ: $returningPct%',
+                                        style: GoogleFonts.prompt(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF4A554E),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  Text(
-                                    '🔄 กลับมาอ่านซ้ำ: $returningPct%',
-                                    style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF1B2820),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        'ผู้อ่านใหม่: $newPct%',
+                                        style: GoogleFonts.prompt(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF4A554E),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -348,33 +449,48 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       ),
                     ),
 
-                    const SliverToBoxAdapter(child: SizedBox(height: 14)),
+                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-                    // ── 3. Section Header: ประสิทธิภาพรายเล่ม ──
+                    // ── 4. Section Header: ประสิทธิภาพรายเล่ม ──
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'ประสิทธิภาพรายเล่ม (เปิดอ่านมากที่สุด)',
-                          style: GoogleFonts.prompt(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF17221C),
-                          ),
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'ประสิทธิภาพรายเล่ม (เปิดอ่านมากที่สุด)',
+                              style: GoogleFonts.prompt(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF15221B),
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            Text(
+                              'จัดอันดับ',
+                              style: GoogleFonts.prompt(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF888E89),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
 
-                    const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                    const SliverToBoxAdapter(child: SizedBox(height: 10)),
 
-                    // ── 4. Catalog Leaderboard with Real 3D Book Cover ──
+                    // ── 5. Catalog Leaderboard with Real 3D Book Cover ──
                     SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, idx) {
                             final item = _catalogs[idx];
                             final ratio = totalViews > 0 ? (item.totalViews / totalViews) : 0.0;
+                            final percentStr = (ratio * 100).toStringAsFixed(0);
 
                             return Container(
                               margin: const EdgeInsets.only(bottom: 10),
@@ -393,93 +509,102 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: const Color(0xFFE5E2D9)),
+                                    border: Border.all(color: const Color(0xFFECE9E0), width: 1),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.02),
-                                        blurRadius: 6,
+                                        color: const Color(0xFF1B2820).withValues(alpha: 0.03),
+                                        blurRadius: 8,
                                         offset: const Offset(0, 2),
                                       ),
                                     ],
                                   ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                  child: Row(
                                     children: [
-                                      Row(
-                                        children: [
-                                          // ── ปกหนังสือ 3D สมจริงตามแบบหน้าแรก พร้อมป้ายอันดับ #1 ──
-                                          _buildCoverThumbnail(item, idx),
-                                          const SizedBox(width: 12),
+                                      // 3D Mini Book Cover
+                                      _buildCoverThumbnail(item, idx),
+                                      const SizedBox(width: 14),
 
-                                          // ชื่อเรื่อง & ขนาดไฟล์
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                      // Book Title & Metadata
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.title,
+                                              style: GoogleFonts.prompt(
+                                                fontSize: 13.5,
+                                                fontWeight: FontWeight.w700,
+                                                color: const Color(0xFF15221B),
+                                                letterSpacing: -0.2,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Row(
                                               children: [
-                                                Text(
-                                                  item.title,
-                                                  style: GoogleFonts.prompt(
-                                                    fontSize: 13.5,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: const Color(0xFF17221C),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFFF3F1EC),
+                                                    borderRadius: BorderRadius.circular(5),
                                                   ),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
+                                                  child: Text(
+                                                    item.formattedSize,
+                                                    style: GoogleFonts.prompt(
+                                                      fontSize: 9.5,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: const Color(0xFF5A635D),
+                                                    ),
+                                                  ),
                                                 ),
-                                                const SizedBox(height: 3),
+                                                const SizedBox(width: 6),
                                                 Text(
-                                                  'ขนาด: ${item.formattedSize}',
+                                                  '•  $percentStr% ของยอดวิว',
                                                   style: GoogleFonts.prompt(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: Colors.grey.shade600,
+                                                    fontSize: 10,
+                                                    color: const Color(0xFF888E89),
                                                   ),
                                                 ),
                                               ],
                                             ),
-                                          ),
-
-                                          // ยอดวิว & คนอ่าน
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.end,
-                                            children: [
-                                              Text(
-                                                '${item.totalViews} วิว',
-                                                style: GoogleFonts.prompt(
-                                                  fontSize: 13.5,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: const Color(0xFF17221C),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                '${item.uniqueReaders.clamp(1, 999999)} คนอ่าน',
-                                                style: GoogleFonts.prompt(
-                                                  fontSize: 10.5,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: const Color(0xFF10B981),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(width: 6),
-                                          const Icon(CupertinoIcons.chevron_right, size: 14, color: Colors.grey),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 10),
-
-                                      // แถบ Progress แสดงสัดส่วนยอดเข้าชม
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(3),
-                                        child: LinearProgressIndicator(
-                                          value: ratio.toDouble().clamp(0.04, 1.0),
-                                          backgroundColor: const Color(0xFFF0EFE9),
-                                          valueColor: AlwaysStoppedAnimation<Color>(
-                                            idx == 0 ? const Color(0xFF10B981) : const Color(0xFF243129),
-                                          ),
-                                          minHeight: 4,
+                                          ],
                                         ),
                                       ),
+                                      const SizedBox(width: 8),
+
+                                      // View Count & Readers Column
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            '${item.totalViews} วิว',
+                                            style: GoogleFonts.prompt(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w800,
+                                              color: const Color(0xFF15221B),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFEBF5F0),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              '${item.uniqueReaders.clamp(1, 999999)} คนอ่าน',
+                                              style: GoogleFonts.prompt(
+                                                fontSize: 9.5,
+                                                fontWeight: FontWeight.w700,
+                                                color: const Color(0xFF1B6B48),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 6),
+                                      const Icon(CupertinoIcons.chevron_right, size: 13, color: Color(0xFFB0AAA0)),
                                     ],
                                   ),
                                 ),
@@ -499,44 +624,76 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildCompactStat({
+  Widget _buildMetricTile({
+    required String title,
     required String value,
-    required String label,
-    required Color color,
+    required String unit,
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
   }) {
-    return Expanded(
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFECE9E0), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1B2820).withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(icon, size: 16, color: iconColor),
+              ),
+              Text(
+                unit,
+                style: GoogleFonts.prompt(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF888E89),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
           Text(
             value,
             style: GoogleFonts.prompt(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              color: color,
-              letterSpacing: -0.5,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF15221B),
+              letterSpacing: -0.6,
             ),
           ),
           const SizedBox(height: 2),
           Text(
-            label,
+            title,
             style: GoogleFonts.prompt(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade600,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF6E746F),
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildVerticalDivider() {
-    return Container(
-      width: 1,
-      height: 26,
-      color: Colors.grey.shade200,
     );
   }
 }

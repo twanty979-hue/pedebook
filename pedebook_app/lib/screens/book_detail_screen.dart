@@ -119,12 +119,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       SnackBar(
         content: Row(
           children: const [
-            Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
+            Icon(Icons.check_circle_rounded, color: Color(0xFF1F7A54), size: 18),
             SizedBox(width: 8),
             Text('คัดลอกลิงก์สมุดเรียบร้อยแล้วครับ'),
           ],
         ),
-        backgroundColor: const Color(0xFF17221C),
+        backgroundColor: const Color(0xFF1B2820),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(seconds: 2),
@@ -147,13 +147,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F4EE),
+      backgroundColor: const Color(0xFFFBFBF8),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF6F4EE),
+        backgroundColor: const Color(0xFFFBFBF8),
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Color(0xFF17221C)),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Color(0xFF1B2820)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -161,17 +161,17 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           style: GoogleFonts.prompt(
             fontSize: 17,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF17221C),
+            color: const Color(0xFF1B2820),
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(CupertinoIcons.share, size: 20, color: Color(0xFF17221C)),
+            icon: const Icon(CupertinoIcons.share, size: 20, color: Color(0xFF1B2820)),
             onPressed: _shareLine,
             tooltip: 'แชร์สมุด',
           ),
           IconButton(
-            icon: const Icon(CupertinoIcons.chart_bar_alt_fill, size: 20, color: Color(0xFF10B981)),
+            icon: const Icon(CupertinoIcons.chart_bar_alt_fill, size: 20, color: Color(0xFF1F7A54)),
             onPressed: () => AnalyticsBottomSheet.show(context, widget.catalog),
             tooltip: 'ดูสถิติเชิงลึก',
           ),
@@ -182,7 +182,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         child: Column(
           children: [
-            // ── 1. Hero 3D Book Cover Presentation (จุดเด่นสง่างามกลางจอ) ──
+            // ── 1. Hero 3D Book Cover Presentation ──
             Center(
               child: Container(
                 width: 175,
@@ -190,13 +190,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 decoration: BoxDecoration(
                   borderRadius: const BorderRadius.horizontal(right: Radius.circular(14)),
                   border: const Border(
-                    left: BorderSide(color: Color(0xFF9A7257), width: 5),
+                    left: BorderSide(color: Color(0xFFC5A059), width: 5),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF243129).withValues(alpha: 0.28),
+                      color: const Color(0xFF1B2820).withValues(alpha: 0.18),
                       blurRadius: 26,
-                      offset: const Offset(-6, 14),
+                      offset: const Offset(-4, 12),
                     ),
                   ],
                 ),
@@ -255,9 +255,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                        color: const Color(0xFFEBF5F0),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -267,17 +267,17 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                             width: 6,
                             height: 6,
                             decoration: const BoxDecoration(
-                              color: Color(0xFF10B981),
+                              color: Color(0xFF1F7A54),
                               shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 5),
                           Text(
                             'ออนไลน์ (พร้อมแชร์)',
                             style: GoogleFonts.prompt(
                               fontSize: 10.5,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF065F46),
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF1F7A54),
                             ),
                           ),
                         ],
@@ -288,34 +288,35 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                       widget.catalog.fileName,
                       style: GoogleFonts.prompt(
                         fontSize: 11,
-                        color: Colors.grey.shade600,
+                        color: const Color(0xFF8C887B),
                       ),
                     ),
                   ],
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
 
             // ── 3. Primary CTA: [ 📖 เปิดอ่านแบบ 3D Flipbook ทันที ] ──
             SizedBox(
               width: double.infinity,
-              height: 46,
+              height: 48,
               child: ElevatedButton.icon(
                 onPressed: _openReader,
-                icon: const Icon(CupertinoIcons.book_fill, size: 18, color: Color(0xFF10B981)),
+                icon: const Icon(CupertinoIcons.book_fill, size: 18, color: Color(0xFFC5A059)),
                 label: Text(
                   'เปิดอ่านแบบ 3D Flipbook ทันที',
                   style: GoogleFonts.prompt(
-                    fontSize: 14,
+                    fontSize: 14.5,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF17221C),
+                  backgroundColor: const Color(0xFF1B2820),
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  elevation: 2,
+                  elevation: 0,
                 ),
               ),
             ),
@@ -330,19 +331,19 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     icon: Icon(
                       _isCopied ? CupertinoIcons.checkmark_alt : CupertinoIcons.link,
                       size: 14,
-                      color: _isCopied ? const Color(0xFF10B981) : const Color(0xFF17221C),
+                      color: _isCopied ? const Color(0xFF1F7A54) : const Color(0xFF1B2820),
                     ),
                     label: Text(
                       _isCopied ? 'คัดลอกแล้ว' : 'คัดลอกลิงก์',
                       style: GoogleFonts.prompt(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF17221C),
+                        color: const Color(0xFF1B2820),
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      side: const BorderSide(color: Color(0xFFD9D7CD), width: 1),
+                      side: const BorderSide(color: Color(0xFFE5E2D9), width: 1),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -352,18 +353,18 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _shareLine,
-                    icon: const Icon(CupertinoIcons.paperplane_fill, size: 14, color: Color(0xFF06C755)),
+                    icon: const Icon(CupertinoIcons.paperplane_fill, size: 14, color: Color(0xFF1F7A54)),
                     label: Text(
                       'แชร์ LINE',
                       style: GoogleFonts.prompt(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF17221C),
+                        color: const Color(0xFF1B2820),
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      side: const BorderSide(color: Color(0xFFD9D7CD), width: 1),
+                      side: const BorderSide(color: Color(0xFFE5E2D9), width: 1),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -373,18 +374,18 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => AnalyticsBottomSheet.show(context, widget.catalog),
-                    icon: const Icon(CupertinoIcons.chart_bar_alt_fill, size: 14, color: Color(0xFF059669)),
+                    icon: const Icon(CupertinoIcons.chart_bar_alt_fill, size: 14, color: Color(0xFF1F7A54)),
                     label: Text(
                       'ดูสถิติ',
                       style: GoogleFonts.prompt(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF17221C),
+                        color: const Color(0xFF1B2820),
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      side: const BorderSide(color: Color(0xFFD9D7CD), width: 1),
+                      side: const BorderSide(color: Color(0xFFE5E2D9), width: 1),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -400,7 +401,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE2DFD5), width: 1),
+                border: Border.all(color: const Color(0xFFE8E5DD), width: 1),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.02),
@@ -414,13 +415,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   _buildMetricCell(
                     value: '${widget.catalog.totalViews}',
                     label: 'ยอดวิวเปิดอ่าน',
-                    color: const Color(0xFF17221C),
+                    color: const Color(0xFF1B2820),
                   ),
                   _buildVerticalDivider(),
                   _buildMetricCell(
                     value: '${widget.catalog.uniqueReaders.clamp(1, 999999)}',
                     label: 'คนอ่านจริง',
-                    color: const Color(0xFF059669),
+                    color: const Color(0xFF1F7A54),
                   ),
                   _buildVerticalDivider(),
                   _buildMetricCell(
@@ -466,9 +467,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                         height: 106,
                         padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAF9F5),
+                          color: const Color(0xFFFBFBF8),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFE5E2D9), width: 1),
+                          border: Border.all(color: const Color(0xFFE8E5DD), width: 1),
                         ),
                         child: Stack(
                           alignment: Alignment.center,
@@ -479,18 +480,18 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                               size: 92,
                               eyeStyle: const QrEyeStyle(
                                 eyeShape: QrEyeShape.square,
-                                color: Color(0xFF17221C),
+                                color: Color(0xFF1B2820),
                               ),
                               dataModuleStyle: const QrDataModuleStyle(
                                 dataModuleShape: QrDataModuleShape.square,
-                                color: Color(0xFF17221C),
+                                color: Color(0xFF1B2820),
                               ),
                             ),
                             Container(
                               width: 22,
                               height: 22,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF243129),
+                                color: const Color(0xFF1B2820),
                                 borderRadius: BorderRadius.circular(5),
                                 border: Border.all(color: Colors.white, width: 1.5),
                               ),
@@ -513,7 +514,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                               style: GoogleFonts.prompt(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF17221C),
+                                color: const Color(0xFF1B2820),
                               ),
                             ),
                             const SizedBox(height: 3),
@@ -521,7 +522,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                               'สแกนเปิดอ่านได้ทันทีบนมือถือ หรือพิมพ์ติดหน้าร้าน',
                               style: GoogleFonts.prompt(
                                 fontSize: 11,
-                                color: const Color(0xFF6E746F),
+                                color: const Color(0xFF8C887B),
                                 height: 1.3,
                               ),
                             ),
@@ -537,18 +538,18 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                     ),
                                   );
                                 },
-                                icon: const Icon(CupertinoIcons.sparkles, size: 13, color: Color(0xFF755A47)),
+                                icon: const Icon(CupertinoIcons.sparkles, size: 13, color: Color(0xFF1F7A54)),
                                 label: Text(
                                   'แต่งสีในสตูดิโอ QR',
                                   style: GoogleFonts.prompt(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF755A47),
+                                    color: const Color(0xFF1F7A54),
                                   ),
                                 ),
                                 style: OutlinedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFFAF9F5),
-                                  side: const BorderSide(color: Color(0xFFD9D7CD), width: 1),
+                                  backgroundColor: const Color(0xFFEBF5F0),
+                                  side: const BorderSide(color: Color(0xFFD0E7DD), width: 1),
                                   padding: const EdgeInsets.symmetric(horizontal: 10),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
@@ -567,13 +568,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8F7F3),
+                      color: const Color(0xFFF5F3EC),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE5E2D9), width: 0.8),
+                      border: Border.all(color: const Color(0xFFE8E5DD), width: 0.8),
                     ),
                     child: Row(
                       children: [
-                        const Icon(CupertinoIcons.link, size: 14, color: Color(0xFF9E9D97)),
+                        const Icon(CupertinoIcons.link, size: 14, color: Color(0xFF8C887B)),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -594,7 +595,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF17221C),
+                              color: const Color(0xFF1B2820),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(

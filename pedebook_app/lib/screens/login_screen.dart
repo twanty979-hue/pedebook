@@ -107,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F4EE),
+      backgroundColor: const Color(0xFFFBFBF8),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -335,14 +335,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       ElevatedButton(
                         onPressed: _isLoading ? null : _handleLogin,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
+                          backgroundColor: const Color(0xFF1B2820),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
                           elevation: 0,
-                          shadowColor: const Color(0xFF10B981).withValues(alpha: 0.3),
                         ),
                         child: _isLoading
                             ? const SizedBox(
@@ -367,7 +366,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       // ── 6. Clean Divider (── หรือเข้าสู่ระบบด้วย ──) ──
                       Row(
                         children: [
-                          Expanded(child: Divider(color: const Color(0xFFE2DFD5), thickness: 1)),
+                          Expanded(child: Divider(color: const Color(0xFFE8E5DD), thickness: 1)),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
@@ -379,7 +378,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
-                          Expanded(child: Divider(color: const Color(0xFFE2DFD5), thickness: 1)),
+                          Expanded(child: Divider(color: const Color(0xFFE8E5DD), thickness: 1)),
                         ],
                       ),
                       const SizedBox(height: 18),
@@ -389,7 +388,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: _isLoading ? null : _handleGoogleLogin,
                         style: OutlinedButton.styleFrom(
                           backgroundColor: Colors.white,
-                          side: const BorderSide(color: Color(0xFFD9D7CD), width: 1.2),
+                          side: const BorderSide(color: Color(0xFFE8E5DD), width: 1.2),
                           padding: const EdgeInsets.symmetric(vertical: 13),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
@@ -405,7 +404,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: GoogleFonts.prompt(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF17221C),
+                                color: const Color(0xFF1B2820),
                               ),
                             ),
                           ],
@@ -433,7 +432,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF10B981),
+                                color: Color(0xFF1F7A54),
                               ),
                             ),
                           ),

@@ -74,12 +74,12 @@ class ShareBottomSheet extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                  color: const Color(0xFF1F7A54).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
                   Icons.qr_code_2_rounded,
-                  color: Color(0xFF10B981),
+                  color: Color(0xFF1F7A54),
                   size: 20,
                 ),
               ),
@@ -151,11 +151,11 @@ class ShareBottomSheet extends StatelessWidget {
                     gapless: true,
                     eyeStyle: const QrEyeStyle(
                       eyeShape: QrEyeShape.square,
-                      color: Color(0xFF243129),
+                      color: Color(0xFF1B2820),
                     ),
                     dataModuleStyle: const QrDataModuleStyle(
                       dataModuleShape: QrDataModuleShape.square,
-                      color: Color(0xFF243129),
+                      color: Color(0xFF1B2820),
                     ),
                   ),
                 ),
@@ -166,7 +166,7 @@ class ShareBottomSheet extends StatelessWidget {
                     const Icon(
                       Icons.qr_code_scanner_rounded,
                       size: 16,
-                      color: Color(0xFF10B981),
+                      color: Color(0xFF1F7A54),
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -224,7 +224,7 @@ class ShareBottomSheet extends StatelessWidget {
                             Text('คัดลอกลิงก์เรียบร้อยแล้วครับ'),
                           ],
                         ),
-                        backgroundColor: const Color(0xFF243129),
+                        backgroundColor: const Color(0xFF1B2820),
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -234,7 +234,7 @@ class ShareBottomSheet extends StatelessWidget {
                     );
                   },
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF10B981),
+                    foregroundColor: const Color(0xFF1F7A54),
                     textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                   ),
                   child: const Text('คัดลอก'),
@@ -260,7 +260,7 @@ class ShareBottomSheet extends StatelessWidget {
                   icon: const Icon(Icons.send_rounded, size: 18),
                   label: const Text('แชร์ไปที่ LINE / โซเชียล'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF243129),
+                    backgroundColor: const Color(0xFF1B2820),
                     foregroundColor: const Color(0xFFF7F5F0),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -280,7 +280,7 @@ class ShareBottomSheet extends StatelessWidget {
                   icon: const Icon(Icons.open_in_new_rounded, size: 16),
                   label: const Text('เปิดอ่าน'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF243129),
+                    foregroundColor: const Color(0xFF1B2820),
                     side: const BorderSide(color: Color(0xFFD9D7CD), width: 1.5),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -305,10 +305,10 @@ class ShareBottomSheet extends StatelessWidget {
                 ),
               );
             },
-            icon: const Icon(CupertinoIcons.slider_horizontal_3, size: 15, color: Color(0xFF10B981)),
+            icon: const Icon(CupertinoIcons.slider_horizontal_3, size: 15, color: Color(0xFF1F7A54)),
             label: const Text('ตกแต่งสีสันและบันทึกภาพใน สตูดิโอ QR →'),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF243129),
+              foregroundColor: const Color(0xFF1B2820),
               textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
             ),
           ),

@@ -110,7 +110,7 @@ class _AnalyticsBottomSheetState extends State<AnalyticsBottomSheet> {
         maxHeight: MediaQuery.of(context).size.height * 0.90,
       ),
       decoration: const BoxDecoration(
-        color: Color(0xFFF8F7F3),
+        color: Color(0xFFFBFBF8),
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: Column(
@@ -136,7 +136,7 @@ class _AnalyticsBottomSheetState extends State<AnalyticsBottomSheet> {
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                  color: const Color(0xFF17221C),
+                  color: const Color(0xFF1B2820),
                   tooltip: 'ย้อนกลับ',
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -145,12 +145,12 @@ class _AnalyticsBottomSheetState extends State<AnalyticsBottomSheet> {
                 Container(
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                    color: const Color(0xFFEBF5F0),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
                     CupertinoIcons.chart_bar_alt_fill,
-                    color: Color(0xFF10B981),
+                    color: Color(0xFF1F7A54),
                     size: 19,
                   ),
                 ),

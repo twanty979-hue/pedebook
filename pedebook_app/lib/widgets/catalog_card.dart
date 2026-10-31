@@ -1577,12 +1577,12 @@ class _CatalogCardState extends State<CatalogCard> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2DFD5), width: 1),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFECE9E0), width: 1),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF243129).withValues(alpha: 0.05),
-            blurRadius: 10,
+            color: const Color(0xFF1B2820).withValues(alpha: 0.04),
+            blurRadius: 12,
             offset: const Offset(0, 3),
           ),
         ],
@@ -1596,34 +1596,34 @@ class _CatalogCardState extends State<CatalogCard> {
               onTap: () => _openDetail(context),
               child: Container(
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFAF9F5),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(19)),
+                  color: Color(0xFFF8F7F3),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(17)),
                 ),
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
                 child: Center(
                   child: AspectRatio(
                     aspectRatio: 0.72,
                     child: Container(
                       decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(10)),
+                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(9)),
                         border: const Border(
-                          left: BorderSide(color: Color(0xFF9A7257), width: 3.5),
+                          left: BorderSide(color: Color(0xFF8C6648), width: 3.5),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF243129).withValues(alpha: 0.18),
-                            blurRadius: 12,
-                            offset: const Offset(-4, 6),
+                            color: const Color(0xFF1B2820).withValues(alpha: 0.18),
+                            blurRadius: 14,
+                            offset: const Offset(-3, 6),
                           ),
                         ],
                       ),
                       child: ClipRRect(
-                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(10)),
+                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(9)),
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
                             _buildCoverContent(),
-                            // Floating 3D Quick Indicator
+                            // Floating 3D Quick Indicator (Luxury Glass Pill)
                             Positioned(
                               bottom: 6,
                               right: 6,
@@ -1632,16 +1632,17 @@ class _CatalogCardState extends State<CatalogCard> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.75),
-                                    borderRadius: BorderRadius.circular(8),
+                                    color: Colors.black.withValues(alpha: 0.72),
+                                    borderRadius: BorderRadius.circular(6),
                                     border: Border.all(
-                                      color: Colors.white.withValues(alpha: 0.2),
+                                      color: Colors.white.withValues(alpha: 0.25),
+                                      width: 0.6,
                                     ),
                                   ),
                                   child: const Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.open_in_new_rounded, size: 9, color: Colors.white),
+                                      Icon(Icons.auto_stories_rounded, size: 9, color: Colors.white),
                                       SizedBox(width: 3),
                                       Text(
                                         '3D',
@@ -1649,6 +1650,7 @@ class _CatalogCardState extends State<CatalogCard> {
                                           color: Colors.white,
                                           fontSize: 9,
                                           fontWeight: FontWeight.bold,
+                                          letterSpacing: 0.5,
                                         ),
                                       ),
                                     ],
@@ -1666,9 +1668,9 @@ class _CatalogCardState extends State<CatalogCard> {
             ),
           ),
 
-          // ── 2. Clean Metadata & Simple Action Row (ไม่มีปุ่มรกๆ ไม่มีแถบสองชั้น) ──
+          // ── 2. Clean Metadata & Balanced Action Bar ──
           Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+            padding: const EdgeInsets.fromLTRB(11, 8, 11, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1679,93 +1681,111 @@ class _CatalogCardState extends State<CatalogCard> {
                     widget.catalog.title,
                     style: GoogleFonts.prompt(
                       fontSize: 12.5,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF17221C),
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF15221B),
                       letterSpacing: -0.2,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
 
-                // File Size & Views
-                Text(
-                  'ขนาด: ${widget.catalog.formattedSize} • ${widget.catalog.totalViews} วิว',
-                  style: GoogleFonts.prompt(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF6E746F),
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // ── 3. Ultra Clean Two Buttons: [📖 เปิดอ่าน] + [⋯ จัดการ (เปิดโมดอลกลางจอ)] ──
+                // File Size & Views Row with Crisp Chips
                 Row(
                   children: [
-                    // [📖 เปิดอ่าน] : เปิด 3D Flipbook ทันที (สไตล์คลีนขาวมินิมอล ขอบเขียวมรกต)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F1EC),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        widget.catalog.formattedSize,
+                        style: GoogleFonts.prompt(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF5A635D),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    const Text('•', style: TextStyle(color: Color(0xFFB0AAA0), fontSize: 10)),
+                    const SizedBox(width: 5),
+                    const Icon(
+                      CupertinoIcons.eye,
+                      size: 11,
+                      color: Color(0xFF1F7A54),
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      '${widget.catalog.totalViews} วิว',
+                      style: GoogleFonts.prompt(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1F7A54),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 9),
+
+                // ── 3. High-End Balanced Actions: [📖 เปิดอ่าน] + [⋯ จัดการ] ──
+                Row(
+                  children: [
+                    // Primary CTA: [📖 เปิดอ่าน]
                     Expanded(
-                      flex: 6,
                       child: SizedBox(
-                        height: 32,
-                        child: OutlinedButton.icon(
+                        height: 33,
+                        child: ElevatedButton.icon(
                           onPressed: _openReader,
                           icon: const Icon(
                             CupertinoIcons.book_fill,
                             size: 13,
-                            color: Color(0xFF10B981),
+                            color: Color(0xFFE8DCC7),
                           ),
                           label: Text(
                             'เปิดอ่าน',
                             style: GoogleFonts.prompt(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF17221C),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: -0.1,
                             ),
                             maxLines: 1,
                           ),
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF10B981), width: 1.2),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1B2820),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
                             padding: EdgeInsets.zero,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(9),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 5),
+                    const SizedBox(width: 6),
 
-                    // [⋯ จัดการ] : กดแล้วเปิดโมดอลกลางจอระดับ Executive
-                    Expanded(
-                      flex: 5,
-                      child: SizedBox(
-                        height: 32,
-                        child: OutlinedButton.icon(
-                          onPressed: () => _showCenterActionsModal(context),
-                          icon: const Icon(
-                            CupertinoIcons.ellipsis_circle,
-                            size: 14,
-                            color: Color(0xFF17221C),
+                    // Contextual Action: [⋯] (จัดการ / เมนูเครื่องมือ)
+                    SizedBox(
+                      width: 34,
+                      height: 33,
+                      child: OutlinedButton(
+                        onPressed: () => _showCenterActionsModal(context),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFBFBF8),
+                          side: const BorderSide(color: Color(0xFFDDD9CF), width: 1.0),
+                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          label: Text(
-                            'จัดการ',
-                            style: GoogleFonts.prompt(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF17221C),
-                            ),
-                            maxLines: 1,
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFBFBF9),
-                            side: const BorderSide(color: Color(0xFFD9D7CD), width: 1.1),
-                            padding: EdgeInsets.zero,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(9),
-                            ),
-                          ),
+                        ),
+                        child: const Icon(
+                          CupertinoIcons.ellipsis,
+                          size: 14,
+                          color: Color(0xFF1B2820),
                         ),
                       ),
                     ),

@@ -52,7 +52,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('สมัครสมาชิกสำเร็จ! ยินดีต้อนรับสู่ Pedebook'),
-            backgroundColor: const Color(0xFF243129),
+            backgroundColor: const Color(0xFF1B2820),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -79,9 +79,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F4EE),
+      backgroundColor: const Color(0xFFFBFBF8),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF6F4EE),
+        backgroundColor: const Color(0xFFFBFBF8),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
@@ -137,7 +137,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: const Color(0xFFE2DFD5)),
+                    border: Border.all(color: const Color(0xFFE8E5DD)),
                   ),
                   child: TextFormField(
                     controller: _nameController,
@@ -158,7 +158,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: const Color(0xFFE2DFD5)),
+                    border: Border.all(color: const Color(0xFFE8E5DD)),
                   ),
                   child: TextFormField(
                     controller: _emailController,
@@ -184,7 +184,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: const Color(0xFFE2DFD5)),
+                    border: Border.all(color: const Color(0xFFE8E5DD)),
                   ),
                   child: TextFormField(
                     controller: _passwordController,
@@ -214,7 +214,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: const Color(0xFFE2DFD5)),
+                    border: Border.all(color: const Color(0xFFE8E5DD)),
                   ),
                   child: TextFormField(
                     controller: _confirmPasswordController,
@@ -235,7 +235,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ElevatedButton(
                   onPressed: _isLoading ? null : _handleRegister,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF243129),
+                    backgroundColor: const Color(0xFF1B2820),
                     foregroundColor: const Color(0xFFF7F5F0),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(

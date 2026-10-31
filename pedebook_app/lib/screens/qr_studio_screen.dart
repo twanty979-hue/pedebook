@@ -278,17 +278,17 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F7F3),
+      backgroundColor: const Color(0xFFFBFBF8),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFFBFBF8),
         elevation: 0,
-        scrolledUnderElevation: 0.5,
+        scrolledUnderElevation: 0,
         title: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: const Color(0xFF243129),
+                color: const Color(0xFF1B2820),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
@@ -493,82 +493,126 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
               ),
               const SizedBox(height: 16),
 
-              // ── 2. QUICK EXPORT & ACTION BAR ──
-              Row(
+              // ── 2. BALANCED 2-TIER QUICK EXPORT & ACTION DECK ──
+              Column(
                 children: [
-                  // Download / Save PNG
-                  Expanded(
-                    flex: 4,
-                    child: ElevatedButton.icon(
-                      onPressed: _exportImage,
-                      icon: const Icon(Icons.download_rounded, size: 18),
-                      label: Text(
-                        'บันทึกภาพ QR',
-                        style: GoogleFonts.prompt(fontWeight: FontWeight.bold, fontSize: 13),
+                  // Row 1: Primary Actions (50/50 Balanced)
+                  Row(
+                    children: [
+                      // Download / Save PNG
+                      Expanded(
+                        child: SizedBox(
+                          height: 44,
+                          child: ElevatedButton.icon(
+                            onPressed: _exportImage,
+                            icon: const Icon(Icons.download_rounded, size: 17, color: Color(0xFFE8DCC7)),
+                            label: Text(
+                              'บันทึกภาพ QR',
+                              style: GoogleFonts.prompt(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12.5,
+                                color: Colors.white,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1B2820),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF243129),
-                        foregroundColor: const Color(0xFFF7F5F0),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
+                      const SizedBox(width: 8),
 
-                  // Share to Social / LINE
-                  Expanded(
-                    flex: 3,
-                    child: ElevatedButton.icon(
-                      onPressed: _shareContent,
-                      icon: const Icon(Icons.share_rounded, size: 16),
-                      label: Text(
-                        'แชร์',
-                        style: GoogleFonts.prompt(fontWeight: FontWeight.bold, fontSize: 13),
+                      // Share to Social / LINE
+                      Expanded(
+                        child: SizedBox(
+                          height: 44,
+                          child: ElevatedButton.icon(
+                            onPressed: _shareContent,
+                            icon: const Icon(Icons.share_rounded, size: 16, color: Colors.white),
+                            label: Text(
+                              'แชร์ QR Code',
+                              style: GoogleFonts.prompt(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12.5,
+                                color: Colors.white,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1F7A54),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        elevation: 0,
-                      ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(height: 8),
 
-                  // Copy Payload
-                  SizedBox(
-                    width: 46,
-                    height: 46,
-                    child: OutlinedButton(
-                      onPressed: _copyPayload,
-                      style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        side: const BorderSide(color: Color(0xFFD9D7CD), width: 1.2),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        backgroundColor: Colors.white,
+                  // Row 2: Secondary Tools (Copy Link & Test Open)
+                  Row(
+                    children: [
+                      // Copy Payload
+                      Expanded(
+                        child: SizedBox(
+                          height: 38,
+                          child: OutlinedButton.icon(
+                            onPressed: _copyPayload,
+                            icon: const Icon(CupertinoIcons.doc_on_doc, size: 14, color: Color(0xFF1B2820)),
+                            label: Text(
+                              'คัดลอกลิงก์',
+                              style: GoogleFonts.prompt(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF1B2820),
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              side: const BorderSide(color: Color(0xFFDDD9CF), width: 1.0),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(11),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      child: const Icon(Icons.copy_rounded, size: 18, color: Color(0xFF243129)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
+                      const SizedBox(width: 8),
 
-                  // Test Open Link
-                  SizedBox(
-                    width: 46,
-                    height: 46,
-                    child: OutlinedButton(
-                      onPressed: _testOpen,
-                      style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        side: const BorderSide(color: Color(0xFFD9D7CD), width: 1.2),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        backgroundColor: Colors.white,
+                      // Test Open Link
+                      Expanded(
+                        child: SizedBox(
+                          height: 38,
+                          child: OutlinedButton.icon(
+                            onPressed: _testOpen,
+                            icon: const Icon(CupertinoIcons.arrow_up_right_square, size: 14, color: Color(0xFF1B2820)),
+                            label: Text(
+                              'ทดลองเปิดอ่าน',
+                              style: GoogleFonts.prompt(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF1B2820),
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              side: const BorderSide(color: Color(0xFFDDD9CF), width: 1.0),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(11),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      child: const Icon(Icons.open_in_new_rounded, size: 18, color: Color(0xFF243129)),
-                    ),
+                    ],
                   ),
                 ],
               ),
