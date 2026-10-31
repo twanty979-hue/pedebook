@@ -104,23 +104,44 @@ export async function GET(request: NextRequest) {
 
       const catalogIds = (catalogs || []).map((c) => c.id);
 
-      // ดึงสถิติของทุกหน้า
+      // ถ้าผู้ใช้ยังไม่มีแค็ตตาล็อกเลย ให้ส่งค่า 0 ทั้งหมดทันที
+      if (catalogIds.length === 0) {
+        return NextResponse.json({
+          success: true,
+          overview: {
+            totalCatalogs: 0,
+            totalViews: 0,
+            totalDurationSeconds: 0,
+            totalUniqueReaders: 0,
+            totalReturningReaders: 0,
+            totalNewReaders: 0,
+            returnRatePercent: 0,
+            catalogs: [],
+          },
+        });
+      }
+
+      // ดึงสถิติของทุกหน้าเฉพาะเล่มของผู้ใช้
       const { data: allStats, error: statsError } = await supabaseAdmin
         .from('catalog_page_stats')
-        .select('*');
+        .select('*')
+        .in('catalog_id', catalogIds);
 
       if (statsError) {
         return NextResponse.json({ error: statsError.message }, { status: 500 });
       }
 
-      // ดึงข้อมูลผู้อ่านจาก catalog_readers สำหรับทุกเล่ม
-      let readersQuery = supabaseAdmin.from('catalog_readers').select('*');
-      if (catalogIds.length > 0) {
-        readersQuery = readersQuery.in('catalog_id', catalogIds);
-      }
-      const { data: allReaders } = await readersQuery;
+      // ดึงข้อมูลผู้อ่านจาก catalog_readers สำหรับเฉพาะเล่มของผู้ใช้
+      const { data: allReaders, error: readersError } = await supabaseAdmin
+        .from('catalog_readers')
+        .select('*')
+        .in('catalog_id', catalogIds);
 
-      const statsMap = new Map<string, any[]>();
+      if (readersError) {
+        console.warn('catalog_readers query warning:', readersError.message);
+      }
+
+      const statsMap = new Map<string, Record<string, unknown>[]>();
       (allStats || []).forEach((st) => {
         if (!statsMap.has(st.catalog_id)) {
           statsMap.set(st.catalog_id, []);
@@ -128,7 +149,7 @@ export async function GET(request: NextRequest) {
         statsMap.get(st.catalog_id)!.push(st);
       });
 
-      const readersMap = new Map<string, any[]>();
+      const readersMap = new Map<string, Record<string, unknown>[]>();
       (allReaders || []).forEach((r) => {
         if (!readersMap.has(r.catalog_id)) {
           readersMap.set(r.catalog_id, []);
