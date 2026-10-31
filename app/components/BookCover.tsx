@@ -39,7 +39,6 @@ export default function BookCover({
   // ตรวจสอบรูปภาพหน้าปกจาก localStorage (แคชระดับเบราว์เซอร์เร็ว 0ms)
   useEffect(() => {
     if (coverImage) {
-      setLocalCover(coverImage);
       return;
     }
     try {
@@ -47,7 +46,9 @@ export default function BookCover({
       if (stored) {
         setLocalCover(stored);
       }
-    } catch (_) {}
+    } catch {
+      // Ignore localStorage access errors
+    }
   }, [coverImage, slug]);
 
   // แคชเวอร์ชันของไฟล์ PDF เพื่อให้ Cloudflare Edge แคชได้ถาวร
@@ -93,9 +94,9 @@ export default function BookCover({
       className="relative w-full h-full overflow-hidden select-none flex items-center justify-center bg-[#1e2a22]"
     >
       {/* ── 1. กรณีมีรูปปกที่แคชไว้แล้ว (แสดงผลทันที 0ms) ── */}
-      {localCover ? (
+      {(coverImage || localCover) ? (
         <img
-          src={localCover}
+          src={coverImage || localCover || ''}
           alt={displayTitle}
           className="w-full h-full object-cover rounded-r-lg transition-transform duration-300 group-hover:scale-105"
           loading="lazy"

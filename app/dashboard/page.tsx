@@ -292,7 +292,7 @@ export default function DashboardPage() {
   }, [router]);
 
   // 2. ดึงแค็ตตาล็อกแยกตามสิทธิ์ผู้ใช้จาก Supabase REST API
-  const fetchCatalogs = async (userId: string) => {
+  async function fetchCatalogs(userId: string) {
     setLoading(true);
     try {
       const itemsMap = new Map<string, CatalogItem>();
@@ -302,25 +302,26 @@ export default function DashboardPage() {
         const res = await fetch(`/api/v1/catalogs?userId=${encodeURIComponent(userId)}`);
         const json = await res.json();
         if (json.success && Array.isArray(json.catalogs)) {
-          json.catalogs.forEach((c: any) => {
-            itemsMap.set(c.slug, {
-              id: c.id,
-              slug: c.slug,
-              fileName: c.file_name,
-              pdfUrl: c.pdf_url,
-              r2Key: c.storage_key,
+          json.catalogs.forEach((c: Record<string, unknown>) => {
+            const slug = String(c.slug || '');
+            itemsMap.set(slug, {
+              id: String(c.id || ''),
+              slug,
+              fileName: String(c.file_name || ''),
+              pdfUrl: String(c.pdf_url || ''),
+              r2Key: String(c.storage_key || ''),
               size: Number(c.file_size_bytes || 0),
-              lastModified: c.created_at,
-              bgType: c.bg_type,
-              bgValue: c.bg_value,
-              isFloating: c.is_floating,
-              displayTitle: c.title,
-              seoDescription: c.seo_description,
-              coverImage: c.cover_image,
-              isPublic: c.is_public,
-              allowIndexing: c.allow_indexing,
-              updatedAt: c.updated_at,
-              adEnabled: c.ad_enabled,
+              lastModified: String(c.created_at || ''),
+              bgType: c.bg_type as string | undefined,
+              bgValue: c.bg_value as string | undefined,
+              isFloating: Boolean(c.is_floating),
+              displayTitle: c.title as string | undefined,
+              seoDescription: c.seo_description as string | undefined,
+              coverImage: c.cover_image as string | undefined,
+              isPublic: Boolean(c.is_public),
+              allowIndexing: Boolean(c.allow_indexing),
+              updatedAt: c.updated_at as string | undefined,
+              adEnabled: Boolean(c.ad_enabled),
             });
           });
         }

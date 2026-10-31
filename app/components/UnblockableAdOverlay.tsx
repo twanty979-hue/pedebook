@@ -18,12 +18,11 @@ export default function UnblockableAdOverlay({
   targetUrl = 'https://www.pedebook.com/pricing',
 }: UnblockableAdOverlayProps) {
   const [secondsRemaining, setSecondsRemaining] = useState(5);
-  const [canClose, setCanClose] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const canClose = secondsRemaining <= 0;
 
   useEffect(() => {
     if (secondsRemaining <= 0) {
-      setCanClose(true);
       return;
     }
 

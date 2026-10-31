@@ -28,7 +28,12 @@ export async function POST(request: NextRequest) {
 
     // If Supabase is configured, use the atomic RPC stored procedure
     if (isSupabaseConfigured()) {
-      const { error } = await (supabaseAdmin.rpc as any)('record_page_stay_time', {
+      const { error } = await (
+        supabaseAdmin.rpc as unknown as (
+          fn: string,
+          params: Record<string, unknown>
+        ) => Promise<{ error: { message: string } | null }>
+      )('record_page_stay_time', {
         p_catalog_id: catalogId,
         p_page_number: Number(pageNumber),
         p_duration_seconds: duration,

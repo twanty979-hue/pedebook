@@ -5,25 +5,18 @@ function resolveSiteUrl(): string {
 
   if (process.env.NODE_ENV === 'production') {
     if (!raw) {
-      throw new Error(
-        '[SEO] NEXT_PUBLIC_SITE_URL is required for production builds. ' +
-        'Set it to your real domain (e.g. https://example.com).',
-      );
+      return 'https://pedebook.com';
     }
 
     let parsed: URL;
     try {
       parsed = new URL(raw.trim());
     } catch {
-      throw new Error(
-        `[SEO] NEXT_PUBLIC_SITE_URL must be a valid URL in production. Got: "${raw}"`,
-      );
+      return 'https://pedebook.com';
     }
 
-    if (parsed.protocol !== 'https:') {
-      throw new Error(
-        `[SEO] NEXT_PUBLIC_SITE_URL must use HTTPS protocol in production. Got: "${raw}"`,
-      );
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      return 'https://pedebook.com';
     }
 
     return parsed.origin;

@@ -10,7 +10,7 @@ interface UsePageAnalyticsProps {
 
 export function usePageAnalytics({ catalogId, currentPage, enabled = true }: UsePageAnalyticsProps) {
   const activePageRef = useRef<number>(currentPage);
-  const pageEnterTimeRef = useRef<number>(Date.now());
+  const pageEnterTimeRef = useRef<number>(0);
   const sessionIdRef = useRef<string>('');
   const readerIdRef = useRef<string>('');
   const isNewReaderRef = useRef<boolean>(true);
@@ -18,6 +18,10 @@ export function usePageAnalytics({ catalogId, currentPage, enabled = true }: Use
   // 1. Initialize or load persistent Reader ID (คนอ่านจริง) and Session ID
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    if (pageEnterTimeRef.current === 0) {
+      pageEnterTimeRef.current = Date.now();
+    }
 
     // Persistent Reader ID across browser sessions (เก็บถาวรใน localStorage เพื่อจำแนกคนอ่านจริง)
     let rId = window.localStorage.getItem('pedebook_reader_id');

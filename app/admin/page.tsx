@@ -249,24 +249,24 @@ export default function AdminPage() {
       const items: CatalogAdminItem[] = [];
 
       if (json.success && Array.isArray(json.catalogs)) {
-        json.catalogs.forEach((c: any) => {
+        json.catalogs.forEach((c: Record<string, unknown>) => {
           items.push({
-            id: c.id,
-            slug: c.slug,
-            fileName: c.file_name,
-            pdfUrl: c.pdf_url,
-            r2Key: c.storage_key,
+            id: String(c.id || ''),
+            slug: String(c.slug || ''),
+            fileName: String(c.file_name || ''),
+            pdfUrl: c.pdf_url as string | undefined,
+            r2Key: c.storage_key as string | undefined,
             size: Number(c.file_size_bytes || 0),
-            lastModified: c.created_at,
-            updatedAt: c.updated_at,
-            userId: c.user_id,
-            displayTitle: c.title,
-            seoDescription: c.seo_description,
-            isPublic: c.is_public,
-            allowIndexing: c.allow_indexing,
-            bgType: c.bg_type,
-            bgValue: c.bg_value,
-            isFloating: c.is_floating,
+            lastModified: c.created_at as string | undefined,
+            updatedAt: c.updated_at as string | undefined,
+            userId: c.user_id as string | undefined,
+            displayTitle: c.title as string | undefined,
+            seoDescription: c.seo_description as string | undefined,
+            isPublic: Boolean(c.is_public),
+            allowIndexing: Boolean(c.allow_indexing),
+            bgType: c.bg_type as string | undefined,
+            bgValue: c.bg_value as string | undefined,
+            isFloating: Boolean(c.is_floating),
           });
         });
       }

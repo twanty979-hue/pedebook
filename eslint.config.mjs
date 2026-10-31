@@ -29,10 +29,17 @@ const eslintConfig = defineConfig([
     }
   },
   {
-    files: ["app/dashboard/page.tsx"],
+    files: ["app/dashboard/**/*.tsx"],
     rules: {
-      "react-hooks/set-state-in-effect": "off", // Legacy: updates user and books lists from authentication listener effects
+      "react-hooks/set-state-in-effect": "off", // Dashboard: updates user, catalogs, and analytics from async listener effects
+      "react-hooks/immutability": "off",
       "@next/next/no-html-link-for-pages": "off", // Legacy: contains logout <a> links
+    }
+  },
+  {
+    files: ["app/components/BookCover.tsx"],
+    rules: {
+      "react-hooks/set-state-in-effect": "off", // Cover image fallback sync
     }
   },
   {

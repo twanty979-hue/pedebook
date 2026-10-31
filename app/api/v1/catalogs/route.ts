@@ -31,8 +31,8 @@ async function ensureProfileExists(userId: string) {
         email_confirm: true,
         user_metadata: { display_name: 'Creator' },
       });
-    } catch (e: any) {
-      console.warn('Profile auto-provision note:', e?.message);
+    } catch (e: unknown) {
+      console.warn('Profile auto-provision note:', (e as Error)?.message);
     }
   }
   return targetId;

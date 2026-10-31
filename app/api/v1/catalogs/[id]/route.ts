@@ -62,7 +62,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     }
 
     if (isSupabaseConfigured()) {
-      const updatePayload: Record<string, any> = {
+      const updatePayload: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
       };
 

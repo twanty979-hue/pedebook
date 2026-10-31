@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 404 });
       }
 
-      const profileData = profile as Record<string, any>;
+      const profileData = profile as Record<string, unknown>;
       const planKey = (profileData.current_plan as PlanId) || 'free';
       const planConfig = PLANS[planKey] || PLANS.free;
       const storageUsed = Number(profileData.storage_used_bytes) || 0;

@@ -93,15 +93,21 @@ export async function getAllUserProfiles(): Promise<Map<string, UserProfileRecor
     const res = await fetch('/api/v1/users');
     const json = await res.json();
     if (json.success && Array.isArray(json.users)) {
-      json.users.forEach((u: any) => {
+      json.users.forEach((u: Record<string, unknown>) => {
         if (u.id) {
-          userMap.set(u.id, {
-            uid: u.id,
-            email: u.email || null,
-            displayName: u.display_name || u.email?.split('@')[0] || 'User',
-            photoURL: u.avatar_url || null,
-            lastActiveAt: u.updated_at || u.created_at,
-            createdAt: u.created_at,
+          const email = typeof u.email === 'string' ? u.email : null;
+          const displayName =
+            typeof u.display_name === 'string'
+              ? u.display_name
+              : email?.split('@')[0] || 'User';
+          const lastActiveAt = String(u.updated_at || u.created_at || new Date().toISOString());
+          userMap.set(String(u.id), {
+            uid: String(u.id),
+            email,
+            displayName,
+            photoURL: typeof u.avatar_url === 'string' ? u.avatar_url : null,
+            lastActiveAt,
+            createdAt: u.created_at ? String(u.created_at) : undefined,
           });
         }
       });
