@@ -39,3 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# flutter companion app (pedebook_app)
+/pedebook_app/.dart_tool/
+/pedebook_app/.flutter-plugins-dependencies
+/pedebook_app/.pub-cache/
+/pedebook_app/.pub/
+/pedebook_app/build/
+/pedebook_app/.idea/
+/pedebook_app/*.iml
+/pedebook_app/android/app/debug/
+/pedebook_app/android/app/profile/
+/pedebook_app/android/app/release/
+/pedebook_app/android/local.properties
+/pedebook_app/windows/flutter/ephemeral/
+
