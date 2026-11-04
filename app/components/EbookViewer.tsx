@@ -264,6 +264,13 @@ export default function EbookViewer({
       };
     }
 
+    if (bgType === 'gradient') {
+      if (customBgStyle) {
+        return customBgStyle;
+      }
+      return { background: 'linear-gradient(135deg, #FDE68A 0%, #FECDD3 50%, #A7F3D0 100%)' };
+    }
+
     return { background: 'linear-gradient(160deg,#1c1c1e 0%,#2a2a2e 100%)' };
   };
 

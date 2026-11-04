@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'home_screen.dart';
 import 'analytics_screen.dart';
-import 'qr_studio_screen.dart';
 import 'profile_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -21,7 +20,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   final List<Widget> _screens = const [
     HomeScreen(),
     AnalyticsScreen(),
-    QrStudioScreen(),
     ProfileScreen(),
   ];
 
@@ -35,11 +33,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       icon: CupertinoIcons.chart_bar,
       activeIcon: CupertinoIcons.chart_bar_alt_fill,
       label: 'สถิติ',
-    ),
-    (
-      icon: CupertinoIcons.qrcode,
-      activeIcon: CupertinoIcons.qrcode_viewfinder,
-      label: 'สตูดิโอ QR',
     ),
     (
       icon: CupertinoIcons.person_crop_circle,
@@ -107,7 +100,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                             children: [
                               Icon(
                                 isSelected ? item.activeIcon : item.icon,
-                                size: 21,
+                                size: 22,
                                 color: isSelected
                                     ? const Color(0xFF1B2820)
                                     : const Color(0xFF9EA39F),
@@ -116,7 +109,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                               Text(
                                 item.label,
                                 style: GoogleFonts.prompt(
-                                  fontSize: 10.5,
+                                  fontSize: 11,
                                   fontWeight: isSelected
                                       ? FontWeight.w700
                                       : FontWeight.w500,

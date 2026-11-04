@@ -87,6 +87,7 @@ export default function DashboardPage() {
   const [authLoading, setAuthLoading] = useState(true);
 
   const [file, setFile] = useState<File | null>(null);
+  const [uploadTitle, setUploadTitle] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatusText, setUploadStatusText] = useState('');
@@ -538,6 +539,7 @@ export default function DashboardPage() {
 
       setUploadStatusText('กำลังบันทึกข้อมูลสมุด...');
       const slug = createCatalogSlug(file.name);
+      const finalTitle = uploadTitle.trim() || file.name.replace(/\.pdf$/i, '');
 
       // 1. บันทึกลง Supabase (Universal API รองรับทั้ง Web & Mobile)
       await fetch('/api/v1/catalogs', {
@@ -546,7 +548,7 @@ export default function DashboardPage() {
         body: JSON.stringify({
           userId: user.uid,
           slug,
-          title: file.name.replace(/\.pdf$/i, ''),
+          title: finalTitle,
           fileName: file.name,
           pdfUrl: uploadRes.url,
           storageKey: uploadRes.key,
@@ -556,12 +558,13 @@ export default function DashboardPage() {
           isFloating: false,
           isPublic: true,
           allowIndexing: true,
-          seoDescription: `อ่าน ${file.name.replace(/\.pdf$/i, '')} ออนไลน์แบบ Flipbook แชร์ลิงก์และ QR Code ได้ทันที`,
+          seoDescription: `อ่าน ${finalTitle} ออนไลน์แบบ Flipbook แชร์ลิงก์และ QR Code ได้ทันที`,
         }),
       });
 
       setUploadResult({ slug });
       setFile(null);
+      setUploadTitle('');
       setUploadModalOpen(false);
       fetchCatalogs(user.uid);
     } catch (err: unknown) {
@@ -1077,6 +1080,9 @@ export default function DashboardPage() {
                   const f = e.dataTransfer.files[0];
                   if (f?.type === 'application/pdf') {
                     setFile(f);
+                    if (!uploadTitle) {
+                      setUploadTitle(f.name.replace(/\.pdf$/i, ''));
+                    }
                   }
                 }}
               >
@@ -1103,9 +1109,30 @@ export default function DashboardPage() {
                   accept="application/pdf"
                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                   onChange={(e) => {
-                    setFile(e.target.files?.[0] ?? null);
+                    const selected = e.target.files?.[0] ?? null;
+                    setFile(selected);
+                    if (selected && !uploadTitle) {
+                      setUploadTitle(selected.name.replace(/\.pdf$/i, ''));
+                    }
                   }}
                 />
+              </div>
+
+              {/* Input ตั้งชื่อสมุดก่อนอัปโหลด */}
+              <div>
+                <label className="block text-xs font-bold text-[#17221c] mb-1.5">
+                  ชื่อสมุดแค็ตตาล็อก (Title)
+                </label>
+                <input
+                  type="text"
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  placeholder="เช่น แค็ตตาล็อกสินค้าประจำปี 2026 (ถ้าไม่ระบุ จะใช้ชื่อไฟล์)"
+                  className="w-full rounded-xl border border-[#d9d7cd] px-3.5 py-2.5 text-xs text-[#17221c] placeholder:text-[#888e89] focus:border-[#1F7A54] focus:outline-none focus:ring-1 focus:ring-[#1F7A54] transition bg-[#fbfaf8]"
+                />
+                <p className="text-[10px] text-[#6e746f] mt-1">
+                  * กำหนดชื่อที่ต้องการแสดง หรือแก้ไขภายหลังได้ตลอดเวลา
+                </p>
               </div>
 
               {uploading && (

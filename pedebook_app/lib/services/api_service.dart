@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/catalog_model.dart';
 
@@ -41,5 +42,129 @@ class PedebookApiService {
         pageCount: 11,
       ),
     ];
+  }
+
+  /// Update background theme and 3D floating effect to sync with web 3D flipbook viewer
+  static Future<bool> updateCatalogDecoration({
+    required String catalogId,
+    required String bgType,
+    required String bgValue,
+    required bool isFloating,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl/api/v1/catalogs/$catalogId');
+      final response = await http
+          .patch(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'bgType': bgType,
+              'bgValue': bgValue,
+              'isFloating': isFloating,
+            }),
+          )
+          .timeout(const Duration(seconds: 8));
+
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Upload PDF file from local device to Cloudflare R2
+  static Future<Map<String, dynamic>?> uploadPdfFile({
+    String? filePath,
+    Uint8List? fileBytes,
+    required String fileName,
+    String? userId,
+  }) async {
+    final uid = userId ?? '179032f4-7640-44be-bea7-6fd2536e918f';
+    try {
+      final uri = Uri.parse('$baseUrl/api/upload');
+      final request = http.MultipartRequest('POST', uri);
+      request.fields['userId'] = uid;
+
+      if (fileBytes != null && fileBytes.isNotEmpty) {
+        request.files.add(http.MultipartFile.fromBytes(
+          'file',
+          fileBytes,
+          filename: fileName,
+        ));
+      } else if (filePath != null && filePath.isNotEmpty) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'file',
+          filePath,
+          filename: fileName,
+        ));
+      } else {
+        return null;
+      }
+
+      final streamedResponse = await request.send().timeout(const Duration(minutes: 3));
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          return Map<String, dynamic>.from(data);
+        }
+      }
+    } catch (e) {
+      debugPrint('Upload PDF error: $e');
+    }
+    return null;
+  }
+
+  /// Create new catalog in Supabase after successful R2 upload
+  static Future<CatalogItem?> createCatalog({
+    required String title,
+    required String fileName,
+    required String pdfUrl,
+    required String storageKey,
+    required int fileSizeBytes,
+    String? userId,
+  }) async {
+    final uid = userId ?? '179032f4-7640-44be-bea7-6fd2536e918f';
+    final safeSlugBase = title
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+        .replaceAll(RegExp(r'^-+|-+$'), '');
+    final hex = DateTime.now().millisecondsSinceEpoch.toRadixString(16).padLeft(8, '0');
+    final slug = '${safeSlugBase.isNotEmpty ? safeSlugBase : 'catalog'}-$hex';
+
+    try {
+      final uri = Uri.parse('$baseUrl/api/v1/catalogs');
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'userId': uid,
+              'slug': slug,
+              'title': title,
+              'fileName': fileName,
+              'pdfUrl': pdfUrl,
+              'storageKey': storageKey,
+              'fileSizeBytes': fileSizeBytes,
+              'pageCount': 0,
+              'bgType': 'gradient',
+              'bgValue': 'auto',
+              'isFloating': true,
+              'isPublic': true,
+              'allowIndexing': true,
+            }),
+          )
+          .timeout(const Duration(seconds: 12));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['catalog'] != null) {
+          return CatalogItem.fromJson(data['catalog']);
+        }
+      }
+    } catch (e) {
+      debugPrint('Create catalog error: $e');
+    }
+    return null;
   }
 }

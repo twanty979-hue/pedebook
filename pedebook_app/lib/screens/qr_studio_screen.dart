@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,20 @@ enum QrMode {
   phone,
 }
 
+enum QrCardTheme {
+  igSunset,
+  tikTokNeon,
+  luxuryForest,
+  pastelAura,
+  midnightBlack,
+  cleanStudio,
+}
+
+enum QrCardRatio {
+  nametag, // Square 1:1 Instagram Nametag
+  story,   // Tall 9:16 Story / TikTok Poster
+}
+
 class QrStudioScreen extends StatefulWidget {
   final CatalogItem? initialCatalog;
 
@@ -34,6 +49,14 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
   // Mode Selection
   QrMode _currentMode = QrMode.catalog;
 
+  // Modern IG / TikTok Card Customization
+  QrCardTheme _selectedTheme = QrCardTheme.igSunset;
+  QrCardRatio _selectedRatio = QrCardRatio.nametag;
+  QrEyeShape _eyeShape = QrEyeShape.circle;
+  QrDataModuleShape _dataShape = QrDataModuleShape.circle;
+  bool _showCenterLogo = true;
+  bool _showVerifiedBadge = true;
+
   // Catalogs
   List<CatalogItem> _catalogs = [];
   CatalogItem? _selectedCatalog;
@@ -45,27 +68,47 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
   final TextEditingController _textController = TextEditingController(text: 'ยินดีต้อนรับสู่ Pedebook 3D Digital Flipbook');
   final TextEditingController _wifiSsidController = TextEditingController(text: 'Pedebook-Guest');
   final TextEditingController _wifiPassController = TextEditingController(text: 'pedebook2025');
-  final String _wifiAuthType = 'WPA'; // WPA, WEP, nopass
-
+  final String _wifiAuthType = 'WPA';
   final TextEditingController _phoneController = TextEditingController(text: '0812345678');
 
-  // Customization Options
-  Color _qrColor = const Color(0xFF243129); // Default: Pedebook Deep Forest Green
-  QrEyeShape _eyeShape = QrEyeShape.square;
-  QrDataModuleShape _dataShape = QrDataModuleShape.square;
-  bool _showCenterLogo = true;
-  bool _showFrameHeader = true;
-
-  // Preset Palettes
-  final List<Map<String, dynamic>> _colorPresets = [
-    {'name': 'เขียวป่า', 'color': const Color(0xFF243129), 'label': 'Forest'},
-    {'name': 'ดำสนิท', 'color': const Color(0xFF111827), 'label': 'Classic'},
-    {'name': 'มรกต', 'color': const Color(0xFF10B981), 'label': 'Emerald'},
-    {'name': 'เนวีบลู', 'color': const Color(0xFF1E3A8A), 'label': 'Navy'},
-    {'name': 'ดินเผา', 'color': const Color(0xFF9A3412), 'label': 'Warm'},
-    {'name': 'ม่วงหรู', 'color': const Color(0xFF581C87), 'label': 'Royal'},
-    {'name': 'ไวน์แดง', 'color': const Color(0xFF881337), 'label': 'Ruby'},
-    {'name': 'ทองอำพัน', 'color': const Color(0xFFB45309), 'label': 'Gold'},
+  // Preset Palettes (สไตล์ IG & TikTok)
+  final List<Map<String, dynamic>> _themePresets = [
+    {
+      'theme': QrCardTheme.igSunset,
+      'name': 'IG Sunset',
+      'tag': '📸 ไอจี',
+      'colors': [Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFFCB045)],
+    },
+    {
+      'theme': QrCardTheme.tikTokNeon,
+      'name': 'TikTok Neon',
+      'tag': '⚡ ตอกตอก',
+      'colors': [Color(0xFF0F0F14), Color(0xFF00F2FE), Color(0xFFFE2C55)],
+    },
+    {
+      'theme': QrCardTheme.luxuryForest,
+      'name': 'Emerald',
+      'tag': '🌲 พรีเมียม',
+      'colors': [Color(0xFF0D1C14), Color(0xFF1A3828), Color(0xFF4EE29B)],
+    },
+    {
+      'theme': QrCardTheme.pastelAura,
+      'name': 'Pastel Aura',
+      'tag': '🦄 พาสเทล',
+      'colors': [Color(0xFFE9D5FF), Color(0xFFCFFAFE), Color(0xFFFCE7F3)],
+    },
+    {
+      'theme': QrCardTheme.midnightBlack,
+      'name': 'Midnight Dark',
+      'tag': '🖤 มินิมอล',
+      'colors': [Color(0xFF18181B), Color(0xFF27272A), Color(0xFF71717A)],
+    },
+    {
+      'theme': QrCardTheme.cleanStudio,
+      'name': 'Clean Studio',
+      'tag': '🤍 คลีนหรู',
+      'colors': [Color(0xFFFFFFFF), Color(0xFFEFECE2), Color(0xFFD4CEC1)],
+    },
   ];
 
   @override
@@ -107,6 +150,19 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
       if (mounted) {
         setState(() => _isLoadingCatalogs = false);
       }
+    }
+  }
+
+  Uint8List? _getCoverBytes(CatalogItem? cat) {
+    if (cat?.coverImage == null || cat!.coverImage!.isEmpty) return null;
+    if (cat.coverImage!.startsWith('http')) return null;
+    try {
+      final img = cat.coverImage!;
+      final base64String = img.contains(',') ? img.split(',').last : img;
+      final clean = base64String.replaceAll(RegExp(r'\s+'), '');
+      return base64Decode(clean);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -159,7 +215,7 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
       case QrMode.line:
         return 'แอด LINE Official Account';
       case QrMode.wifi:
-        return 'สแกนเชื่อมต่อ Wi-Fi อัตโนมัติ';
+        return 'สแกนเชื่อมต่อ Wi-Fi ร้าน';
       case QrMode.text:
         return 'ข้อความ / รายละเอียดสินค้า';
       case QrMode.phone:
@@ -187,7 +243,7 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
   IconData get _modeIcon {
     switch (_currentMode) {
       case QrMode.catalog:
-        return Icons.menu_book_rounded;
+        return Icons.auto_stories;
       case QrMode.url:
         return Icons.language_rounded;
       case QrMode.line:
@@ -201,10 +257,123 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
     }
   }
 
+  Gradient _getThemeGradient() {
+    switch (_selectedTheme) {
+      case QrCardTheme.igSunset:
+        return const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF833AB4), // Purple
+            Color(0xFFFD1D1D), // Rose red
+            Color(0xFFFCB045), // Warm orange
+          ],
+        );
+      case QrCardTheme.tikTokNeon:
+        return const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0F0F14),
+            Color(0xFF1B1B28),
+            Color(0xFF09090C),
+          ],
+        );
+      case QrCardTheme.luxuryForest:
+        return const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0D1C14),
+            Color(0xFF1A3828),
+            Color(0xFF0F241A),
+          ],
+        );
+      case QrCardTheme.pastelAura:
+        return const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFE9D5FF),
+            Color(0xFFCFFAFE),
+            Color(0xFFFCE7F3),
+          ],
+        );
+      case QrCardTheme.midnightBlack:
+        return const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF18181B),
+            Color(0xFF27272A),
+            Color(0xFF141416),
+          ],
+        );
+      case QrCardTheme.cleanStudio:
+        return const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFFFFF),
+            Color(0xFFF8F7F3),
+            Color(0xFFEFECE2),
+          ],
+        );
+    }
+  }
+
+  Color _getThemeTextColor() {
+    switch (_selectedTheme) {
+      case QrCardTheme.pastelAura:
+      case QrCardTheme.cleanStudio:
+        return const Color(0xFF18221B);
+      default:
+        return Colors.white;
+    }
+  }
+
+  Color _getThemeSubtextColor() {
+    switch (_selectedTheme) {
+      case QrCardTheme.pastelAura:
+      case QrCardTheme.cleanStudio:
+        return const Color(0xFF5F6862);
+      default:
+        return Colors.white.withValues(alpha: 0.82);
+    }
+  }
+
+  Color _getVerifiedBadgeColor() {
+    switch (_selectedTheme) {
+      case QrCardTheme.igSunset:
+        return const Color(0xFF3897F0); // Official IG blue check
+      case QrCardTheme.tikTokNeon:
+        return const Color(0xFF00F2FE); // TikTok cyan
+      case QrCardTheme.luxuryForest:
+        return const Color(0xFF4EE29B); // Emerald
+      case QrCardTheme.pastelAura:
+        return const Color(0xFF8B5CF6); // Purple
+      case QrCardTheme.midnightBlack:
+        return const Color(0xFFE4E4E7); // Titanium
+      case QrCardTheme.cleanStudio:
+        return const Color(0xFF1F7A54); // Forest
+    }
+  }
+
+  Color _getQrCodeColor() {
+    switch (_selectedTheme) {
+      case QrCardTheme.tikTokNeon:
+        return const Color(0xFF0F0F14);
+      case QrCardTheme.luxuryForest:
+        return const Color(0xFF10281C);
+      default:
+        return const Color(0xFF1B1B1F);
+    }
+  }
+
   /// Copies data to clipboard
   void _copyPayload() {
     Clipboard.setData(ClipboardData(text: _qrPayload));
-    _showSnackBar('คัดลอกข้อมูลเรียบร้อยแล้วครับ: $_qrPayload', Icons.check_circle_rounded);
+    _showSnackBar('คัดลอกลิงก์เรียบร้อยแล้วครับ: $_qrPayload', Icons.check_circle_rounded);
   }
 
   /// Tests opening the link or action
@@ -231,7 +400,7 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
       if (byteData == null) return;
 
       final pngBytes = byteData.buffer.asUint8List();
-      final filename = 'pedebook_qr_${DateTime.now().millisecondsSinceEpoch}.png';
+      final filename = 'pedebook_${_selectedTheme.name}_${DateTime.now().millisecondsSinceEpoch}.png';
 
       await Share.shareXFiles(
         [
@@ -241,19 +410,11 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
             name: filename,
           ),
         ],
-        text: 'QR Code สำหรับ $_displayTitle จาก Pedebook Studio',
+        text: 'เปิดอ่าน 3D Flipbook "$_displayTitle" ได้ทันที เพียงสแกน QR Code สไตล์ชิคนี้!',
       );
     } catch (e) {
       _showSnackBar('ขออภัย ไม่สามารถบันทึกภาพได้ในขณะนี้: $e', Icons.error_outline_rounded);
     }
-  }
-
-  /// Shares the QR code text / URL
-  void _shareContent() {
-    Share.share(
-      '$_displayTitle\nเปิดดูหรือสแกนได้ที่: $_qrPayload',
-      subject: _displayTitle,
-    );
   }
 
   void _showSnackBar(String text, IconData icon) {
@@ -267,7 +428,7 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
             Expanded(child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis)),
           ],
         ),
-        backgroundColor: const Color(0xFF243129),
+        backgroundColor: const Color(0xFF1B2820),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(seconds: 2),
@@ -288,7 +449,9 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
             Container(
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: const Color(0xFF1B2820),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFFCB045)],
+                ),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
@@ -301,16 +464,36 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'สตูดิโอสร้าง QR Code',
-                  style: GoogleFonts.prompt(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF17221C),
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      'สตูดิโอสร้าง QR Code',
+                      style: GoogleFonts.prompt(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF17221C),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF3F0),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'IG & TikTok',
+                        style: GoogleFonts.prompt(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF435A4D),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 Text(
-                  'สร้างและตกแต่ง QR สำหรับแชร์หรือพิมพ์ป้าย',
+                  'การ์ด QR โค้ดแนวโซเชียล สวยพร้อมแชร์ลงสตอรี่และพิมพ์ป้าย',
                   style: GoogleFonts.prompt(
                     fontSize: 10.5,
                     color: Colors.grey.shade600,
@@ -326,11 +509,12 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
             icon: const Icon(Icons.refresh_rounded, color: Color(0xFF243129), size: 20),
             onPressed: () {
               setState(() {
-                _qrColor = const Color(0xFF243129);
-                _eyeShape = QrEyeShape.square;
-                _dataShape = QrDataModuleShape.square;
+                _selectedTheme = QrCardTheme.igSunset;
+                _selectedRatio = QrCardRatio.nametag;
+                _eyeShape = QrEyeShape.circle;
+                _dataShape = QrDataModuleShape.circle;
                 _showCenterLogo = true;
-                _showFrameHeader = true;
+                _showVerifiedBadge = true;
               });
               _showSnackBar('รีเซ็ตการตกแต่งเป็นค่ามาตรฐานแล้วครับ', Icons.check_circle_outline_rounded);
             },
@@ -339,295 +523,45 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── 1. LIVE QR CODE PREVIEW CARD (RepaintBoundary) ──
+              // ── 1. LIVE AESTHETIC QR CARD PREVIEW (สไตล์ไอจี / ตอกตอก) ──
               Center(
                 child: RepaintBoundary(
                   key: _qrCardKey,
-                  child: Container(
-                    width: 320,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: const Color(0xFFE5E2D9), width: 1.2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF243129).withValues(alpha: 0.08),
-                          blurRadius: 18,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Card Header Badge
-                        if (_showFrameHeader) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: _qrColor.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(_modeIcon, size: 14, color: _qrColor),
-                                const SizedBox(width: 6),
-                                Text(
-                                  _currentMode == QrMode.catalog
-                                      ? 'PEDEBOOK 3D FLIPBOOK'
-                                      : _currentMode.name.toUpperCase(),
-                                  style: GoogleFonts.prompt(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 0.8,
-                                    color: _qrColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-
-                        // The QR Code Image with Center Emblem
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey.shade200),
-                          ),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              QrImageView(
-                                data: _qrPayload,
-                                version: QrVersions.auto,
-                                size: 195,
-                                gapless: true,
-                                errorCorrectionLevel: QrErrorCorrectLevel.H,
-                                eyeStyle: QrEyeStyle(
-                                  eyeShape: _eyeShape,
-                                  color: _qrColor,
-                                ),
-                                dataModuleStyle: QrDataModuleStyle(
-                                  dataModuleShape: _dataShape,
-                                  color: _qrColor,
-                                ),
-                              ),
-                              if (_showCenterLogo)
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.12),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                    border: Border.all(
-                                      color: _qrColor.withValues(alpha: 0.25),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: Center(
-                                    child: Container(
-                                      width: 32,
-                                      height: 32,
-                                      decoration: BoxDecoration(
-                                        color: _qrColor,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Center(
-                                        child: Icon(
-                                          Icons.menu_book_rounded,
-                                          color: Colors.white,
-                                          size: 16,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Title & Prompt in Card
-                        Text(
-                          _displayTitle,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.prompt(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF17221C),
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _displaySubtitle,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.prompt(
-                            fontSize: 10.5,
-                            color: Colors.grey.shade600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
+                  child: _buildQrCardPreview(),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
 
-              // ── 2. BALANCED 2-TIER QUICK EXPORT & ACTION DECK ──
-              Column(
-                children: [
-                  // Row 1: Primary Actions (50/50 Balanced)
-                  Row(
-                    children: [
-                      // Download / Save PNG
-                      Expanded(
-                        child: SizedBox(
-                          height: 44,
-                          child: ElevatedButton.icon(
-                            onPressed: _exportImage,
-                            icon: const Icon(Icons.download_rounded, size: 17, color: Color(0xFFE8DCC7)),
-                            label: Text(
-                              'บันทึกภาพ QR',
-                              style: GoogleFonts.prompt(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12.5,
-                                color: Colors.white,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1B2820),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
+              // ── 2. QUICK ACTION DECK (แชร์การ์ด IG / TikTok & บันทึก HD) ──
+              _buildActionDeck(),
+              const SizedBox(height: 22),
 
-                      // Share to Social / LINE
-                      Expanded(
-                        child: SizedBox(
-                          height: 44,
-                          child: ElevatedButton.icon(
-                            onPressed: _shareContent,
-                            icon: const Icon(Icons.share_rounded, size: 16, color: Colors.white),
-                            label: Text(
-                              'แชร์ QR Code',
-                              style: GoogleFonts.prompt(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12.5,
-                                color: Colors.white,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1F7A54),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Row 2: Secondary Tools (Copy Link & Test Open)
-                  Row(
-                    children: [
-                      // Copy Payload
-                      Expanded(
-                        child: SizedBox(
-                          height: 38,
-                          child: OutlinedButton.icon(
-                            onPressed: _copyPayload,
-                            icon: const Icon(CupertinoIcons.doc_on_doc, size: 14, color: Color(0xFF1B2820)),
-                            label: Text(
-                              'คัดลอกลิงก์',
-                              style: GoogleFonts.prompt(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF1B2820),
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              side: const BorderSide(color: Color(0xFFDDD9CF), width: 1.0),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(11),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-
-                      // Test Open Link
-                      Expanded(
-                        child: SizedBox(
-                          height: 38,
-                          child: OutlinedButton.icon(
-                            onPressed: _testOpen,
-                            icon: const Icon(CupertinoIcons.arrow_up_right_square, size: 14, color: Color(0xFF1B2820)),
-                            label: Text(
-                              'ทดลองเปิดอ่าน',
-                              style: GoogleFonts.prompt(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF1B2820),
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              side: const BorderSide(color: Color(0xFFDDD9CF), width: 1.0),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(11),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+              // ── 3. CARD FORMAT & RATIO SWITCHER ──
+              _buildSectionTitle('1. รูปแบบการ์ด (Card Ratio)', CupertinoIcons.square_on_square),
+              const SizedBox(height: 10),
+              _buildRatioSelector(),
               const SizedBox(height: 20),
 
-              // ── 3. DATA SOURCE SELECTOR (แบบครบวงจร) ──
-              _buildSectionTitle('1. เลือกประเภทข้อมูลที่ต้องการสร้าง QR', Icons.tune_rounded),
+              // ── 4. THEME PRESETS SELECTOR (แนวไอจี & ตอกตอก) ──
+              _buildSectionTitle('2. ธีมสีสไตล์ IG & TikTok', CupertinoIcons.sparkles),
+              const SizedBox(height: 10),
+              _buildThemePresetsSelector(),
+              const SizedBox(height: 20),
+
+              // ── 5. DATA SOURCE SELECTOR (เลือกเนื้อหา) ──
+              _buildSectionTitle('3. ข้อมูลที่ต้องการแปลงเป็น QR Code', Icons.tune_rounded),
               const SizedBox(height: 10),
 
-              // Segmented Category Tabs
+              // Category Tabs
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    _buildModeChip(QrMode.catalog, 'แค็ตตาล็อก 3D', Icons.menu_book_rounded),
+                    _buildModeChip(QrMode.catalog, 'แค็ตตาล็อก 3D', Icons.auto_stories),
                     const SizedBox(width: 8),
                     _buildModeChip(QrMode.url, 'เว็บไซต์ / ลิงก์', Icons.language_rounded),
                     const SizedBox(width: 8),
@@ -643,7 +577,6 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Category Specific Input Form
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
@@ -655,8 +588,8 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
               ),
               const SizedBox(height: 20),
 
-              // ── 4. DESIGN & COLOR CUSTOMIZATION ──
-              _buildSectionTitle('2. ตกแต่งสีสันและสไตล์ QR Code', Icons.palette_rounded),
+              // ── 6. QR CODE DETAIL CUSTOMIZATION (Dot & Eye Shapes) ──
+              _buildSectionTitle('4. ปรับแต่งทรงจุด QR & สัญลักษณ์', Icons.palette_rounded),
               const SizedBox(height: 10),
 
               Container(
@@ -669,60 +602,6 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Palette Row
-                    Text(
-                      'โทนสีของ QR Code:',
-                      style: GoogleFonts.prompt(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF17221C)),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: _colorPresets.map((preset) {
-                        final color = preset['color'] as Color;
-                        final isSelected = _qrColor == color;
-                        return GestureDetector(
-                          onTap: () => setState(() => _qrColor = color),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: isSelected ? color : color.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected ? color : color.withValues(alpha: 0.3),
-                                width: isSelected ? 2 : 1,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 14,
-                                  height: 14,
-                                  decoration: BoxDecoration(
-                                    color: color,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white, width: 1.5),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  preset['name'] as String,
-                                  style: GoogleFonts.prompt(
-                                    fontSize: 11,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                    color: isSelected ? Colors.white : const Color(0xFF17221C),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const Divider(height: 24, thickness: 0.8),
-
-                    // Eye Shape & Data Shape
                     Row(
                       children: [
                         // Eye Shape
@@ -738,15 +617,15 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
                               Row(
                                 children: [
                                   _buildShapePill(
-                                    label: 'เหลี่ยม',
-                                    isSelected: _eyeShape == QrEyeShape.square,
-                                    onTap: () => setState(() => _eyeShape = QrEyeShape.square),
+                                    label: 'กลมมน (IG)',
+                                    isSelected: _eyeShape == QrEyeShape.circle,
+                                    onTap: () => setState(() => _eyeShape = QrEyeShape.circle),
                                   ),
                                   const SizedBox(width: 6),
                                   _buildShapePill(
-                                    label: 'กลม',
-                                    isSelected: _eyeShape == QrEyeShape.circle,
-                                    onTap: () => setState(() => _eyeShape = QrEyeShape.circle),
+                                    label: 'เหลี่ยม',
+                                    isSelected: _eyeShape == QrEyeShape.square,
+                                    onTap: () => setState(() => _eyeShape = QrEyeShape.square),
                                   ),
                                 ],
                               ),
@@ -768,15 +647,15 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
                               Row(
                                 children: [
                                   _buildShapePill(
-                                    label: 'เหลี่ยม',
-                                    isSelected: _dataShape == QrDataModuleShape.square,
-                                    onTap: () => setState(() => _dataShape = QrDataModuleShape.square),
+                                    label: 'จุดกลม (ชิค)',
+                                    isSelected: _dataShape == QrDataModuleShape.circle,
+                                    onTap: () => setState(() => _dataShape = QrDataModuleShape.circle),
                                   ),
                                   const SizedBox(width: 6),
                                   _buildShapePill(
-                                    label: 'กลม',
-                                    isSelected: _dataShape == QrDataModuleShape.circle,
-                                    onTap: () => setState(() => _dataShape = QrDataModuleShape.circle),
+                                    label: 'เหลี่ยม',
+                                    isSelected: _dataShape == QrDataModuleShape.square,
+                                    onTap: () => setState(() => _dataShape = QrDataModuleShape.square),
                                   ),
                                 ],
                               ),
@@ -787,7 +666,7 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
                     ),
                     const Divider(height: 24, thickness: 0.8),
 
-                    // Toggles: Center Logo & Frame Header
+                    // Toggles: Center Logo & Verified Badge
                     Row(
                       children: [
                         Expanded(
@@ -805,7 +684,7 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    'ใส่โลโก้ตรงกลาง',
+                                    'ใส่โลโก้ตรงกลาง QR',
                                     style: GoogleFonts.prompt(fontSize: 11.5, fontWeight: FontWeight.w600),
                                   ),
                                 ],
@@ -815,20 +694,20 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
                         ),
                         Expanded(
                           child: InkWell(
-                            onTap: () => setState(() => _showFrameHeader = !_showFrameHeader),
+                            onTap: () => setState(() => _showVerifiedBadge = !_showVerifiedBadge),
                             borderRadius: BorderRadius.circular(10),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 4),
                               child: Row(
                                 children: [
                                   Icon(
-                                    _showFrameHeader ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
-                                    color: _showFrameHeader ? const Color(0xFF10B981) : Colors.grey,
+                                    _showVerifiedBadge ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                                    color: _showVerifiedBadge ? const Color(0xFF10B981) : Colors.grey,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    'หัวข้อการ์ด SCAN ME',
+                                    'ตราติ๊กถูก Verified',
                                     style: GoogleFonts.prompt(fontSize: 11.5, fontWeight: FontWeight.w600),
                                   ),
                                 ],
@@ -849,12 +728,819 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
     );
   }
 
-  // ── Helper Widgets ──
+  // ── LIVE PREVIEW BUILDERS ──
+
+  Widget _buildQrCardPreview() {
+    final coverBytes = _getCoverBytes(_selectedCatalog);
+    final themeGradient = _getThemeGradient();
+    final textColor = _getThemeTextColor();
+    final subtextColor = _getThemeSubtextColor();
+    final verifiedColor = _getVerifiedBadgeColor();
+    final qrColor = _getQrCodeColor();
+
+    if (_selectedRatio == QrCardRatio.story) {
+      return _buildStoryPosterCard(
+        coverBytes: coverBytes,
+        gradient: themeGradient,
+        textColor: textColor,
+        subtextColor: subtextColor,
+        verifiedColor: verifiedColor,
+        qrColor: qrColor,
+      );
+    }
+
+    return _buildNametagCard(
+      coverBytes: coverBytes,
+      gradient: themeGradient,
+      textColor: textColor,
+      subtextColor: subtextColor,
+      verifiedColor: verifiedColor,
+      qrColor: qrColor,
+    );
+  }
+
+  /// 1. Nametag 1:1 Instagram / TikTok Card
+  Widget _buildNametagCard({
+    required Uint8List? coverBytes,
+    required Gradient gradient,
+    required Color textColor,
+    required Color subtextColor,
+    required Color verifiedColor,
+    required Color qrColor,
+  }) {
+    return Container(
+      width: 320,
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: _selectedTheme == QrCardTheme.cleanStudio
+              ? const Color(0xFFE5E1D5)
+              : Colors.white.withValues(alpha: 0.22),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: _selectedTheme == QrCardTheme.tikTokNeon
+                ? const Color(0xFF00F2FE).withValues(alpha: 0.18)
+                : Colors.black.withValues(alpha: 0.16),
+            blurRadius: 26,
+            offset: const Offset(0, 10),
+          ),
+          if (_selectedTheme == QrCardTheme.tikTokNeon)
+            BoxShadow(
+              color: const Color(0xFFFE2C55).withValues(alpha: 0.14),
+              blurRadius: 28,
+              offset: const Offset(4, 12),
+            ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header: Avatar/Cover + Title + Verified Badge
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    width: 1.5,
+                  ),
+                ),
+                child: ClipOval(
+                  child: coverBytes != null
+                      ? Image.memory(coverBytes, fit: BoxFit.cover)
+                      : Center(
+                          child: Icon(
+                            _modeIcon,
+                            color: textColor,
+                            size: 18,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _displayTitle,
+                            style: GoogleFonts.prompt(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800,
+                              color: textColor,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (_showVerifiedBadge) ...[
+                          const SizedBox(width: 4),
+                          Icon(
+                            CupertinoIcons.checkmark_seal_fill,
+                            size: 14,
+                            color: verifiedColor,
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      _currentMode == QrMode.catalog
+                          ? '@pedebook • 3D Flipbook'
+                          : _displaySubtitle,
+                      style: GoogleFonts.prompt(
+                        fontSize: 10,
+                        color: subtextColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 0.8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_selectedTheme == QrCardTheme.tikTokNeon)
+                      const Icon(CupertinoIcons.bolt_fill, size: 9, color: Color(0xFF00F2FE))
+                    else
+                      const Icon(CupertinoIcons.sparkles, size: 9, color: Colors.white),
+                    const SizedBox(width: 3),
+                    Text(
+                      _selectedTheme == QrCardTheme.tikTokNeon ? 'TIKTOK' : 'SCAN ME',
+                      style: GoogleFonts.prompt(
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                        color: textColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Floating Pure White QR Box
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                QrImageView(
+                  data: _qrPayload,
+                  version: QrVersions.auto,
+                  size: 190,
+                  gapless: true,
+                  errorCorrectionLevel: QrErrorCorrectLevel.H,
+                  eyeStyle: QrEyeStyle(
+                    eyeShape: _eyeShape,
+                    color: qrColor,
+                  ),
+                  dataModuleStyle: QrDataModuleStyle(
+                    dataModuleShape: _dataShape,
+                    color: qrColor,
+                  ),
+                ),
+                if (_showCenterLogo)
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: verifiedColor.withValues(alpha: 0.7),
+                        width: 2.5,
+                      ),
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          gradient: gradient,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Icon(
+                            _modeIcon,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Scan Instruction & Hashtag Footer
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(CupertinoIcons.camera_fill, size: 12, color: textColor),
+                const SizedBox(width: 5),
+                Text(
+                  'สแกนด้วยกล้องมือถือ เพื่อเปิดอ่าน 3D ทันที',
+                  style: GoogleFonts.prompt(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            '#Pedebook3D  •  www.pedebook.com',
+            style: GoogleFonts.prompt(
+              fontSize: 9,
+              color: subtextColor,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 2. Tall 9:16 Instagram / TikTok Story Poster Card
+  Widget _buildStoryPosterCard({
+    required Uint8List? coverBytes,
+    required Gradient gradient,
+    required Color textColor,
+    required Color subtextColor,
+    required Color verifiedColor,
+    required Color qrColor,
+  }) {
+    return Container(
+      width: 320,
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(34),
+        border: Border.all(
+          color: _selectedTheme == QrCardTheme.cleanStudio
+              ? const Color(0xFFE5E1D5)
+              : Colors.white.withValues(alpha: 0.25),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.20),
+            blurRadius: 30,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Top Story Tag
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.20),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(CupertinoIcons.sparkles, size: 11, color: textColor),
+                const SizedBox(width: 5),
+                Text(
+                  'PEDEBOOK STORY POSTER',
+                  style: GoogleFonts.prompt(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                    color: textColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Book 3D Cover Presentation (if Catalog Mode)
+          if (_currentMode == QrMode.catalog && coverBytes != null) ...[
+            Container(
+              width: 95,
+              height: 130,
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.horizontal(right: Radius.circular(10)),
+                border: const Border(left: BorderSide(color: Color(0xFFC5A059), width: 3.5)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    blurRadius: 18,
+                    offset: const Offset(-2, 8),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.horizontal(right: Radius.circular(10)),
+                child: Image.memory(coverBytes, fit: BoxFit.cover),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+
+          // Title & Verified Seal
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  _displayTitle,
+                  style: GoogleFonts.prompt(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: textColor,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (_showVerifiedBadge) ...[
+                const SizedBox(width: 5),
+                Icon(
+                  CupertinoIcons.checkmark_seal_fill,
+                  size: 15,
+                  color: verifiedColor,
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            _displaySubtitle,
+            style: GoogleFonts.prompt(
+              fontSize: 10.5,
+              color: subtextColor,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 14),
+
+          // Floating White QR Code Box
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                QrImageView(
+                  data: _qrPayload,
+                  version: QrVersions.auto,
+                  size: 155,
+                  gapless: true,
+                  errorCorrectionLevel: QrErrorCorrectLevel.H,
+                  eyeStyle: QrEyeStyle(
+                    eyeShape: _eyeShape,
+                    color: qrColor,
+                  ),
+                  dataModuleStyle: QrDataModuleStyle(
+                    dataModuleShape: _dataShape,
+                    color: qrColor,
+                  ),
+                ),
+                if (_showCenterLogo)
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: verifiedColor, width: 2),
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          gradient: gradient,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Icon(_modeIcon, color: Colors.white, size: 14),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Bottom Prompt
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(CupertinoIcons.camera_viewfinder, size: 12, color: textColor),
+                const SizedBox(width: 5),
+                Text(
+                  'SCAN TO READ 3D FLIPBOOK',
+                  style: GoogleFonts.prompt(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                    color: textColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '@pedebook.official  •  pedebook.com',
+            style: GoogleFonts.prompt(
+              fontSize: 9,
+              color: subtextColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── CONTROLS & ACTIONS ──
+
+  Widget _buildActionDeck() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            // Share Image to Social (IG / TikTok)
+            Expanded(
+              flex: 3,
+              child: SizedBox(
+                height: 46,
+                child: ElevatedButton.icon(
+                  onPressed: _exportImage,
+                  icon: const Icon(CupertinoIcons.share, size: 17, color: Colors.white),
+                  label: Text(
+                    'แชร์การ์ด (IG / TikTok)',
+                    style: GoogleFonts.prompt(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1B2820),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Save Image to Device
+            Expanded(
+              flex: 2,
+              child: SizedBox(
+                height: 46,
+                child: ElevatedButton.icon(
+                  onPressed: _exportImage,
+                  icon: const Icon(Icons.download_rounded, size: 18, color: Color(0xFF1F7A54)),
+                  label: Text(
+                    'บันทึก HD',
+                    style: GoogleFonts.prompt(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12.5,
+                      color: const Color(0xFF1F7A54),
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEBF5F0),
+                    foregroundColor: const Color(0xFF1F7A54),
+                    elevation: 0,
+                    side: const BorderSide(color: Color(0xFFD4EADB), width: 1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 38,
+                child: OutlinedButton.icon(
+                  onPressed: _copyPayload,
+                  icon: const Icon(CupertinoIcons.doc_on_doc, size: 13.5, color: Color(0xFF1B2820)),
+                  label: Text(
+                    'คัดลอกลิงก์',
+                    style: GoogleFonts.prompt(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1B2820),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFFE2DFD5), width: 1.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            Expanded(
+              child: SizedBox(
+                height: 38,
+                child: OutlinedButton.icon(
+                  onPressed: _testOpen,
+                  icon: const Icon(CupertinoIcons.arrow_up_right_square, size: 13.5, color: Color(0xFF1B2820)),
+                  label: Text(
+                    'ทดลองเปิดอ่าน',
+                    style: GoogleFonts.prompt(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1B2820),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFFE2DFD5), width: 1.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRatioSelector() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E2D9)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: () => setState(() => _selectedRatio = QrCardRatio.nametag),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8.5),
+                decoration: BoxDecoration(
+                  color: _selectedRatio == QrCardRatio.nametag
+                      ? const Color(0xFF1B2820)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      CupertinoIcons.square_fill,
+                      size: 14,
+                      color: _selectedRatio == QrCardRatio.nametag
+                          ? Colors.white
+                          : const Color(0xFF6E746F),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'การ์ด Nametag (1:1)',
+                      style: GoogleFonts.prompt(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                        color: _selectedRatio == QrCardRatio.nametag
+                            ? Colors.white
+                            : const Color(0xFF6E746F),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: InkWell(
+              onTap: () => setState(() => _selectedRatio = QrCardRatio.story),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8.5),
+                decoration: BoxDecoration(
+                  color: _selectedRatio == QrCardRatio.story
+                      ? const Color(0xFF1B2820)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      CupertinoIcons.device_phone_portrait,
+                      size: 14,
+                      color: _selectedRatio == QrCardRatio.story
+                          ? Colors.white
+                          : const Color(0xFF6E746F),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'สตอรี่โปสเตอร์ (9:16)',
+                      style: GoogleFonts.prompt(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                        color: _selectedRatio == QrCardRatio.story
+                            ? Colors.white
+                            : const Color(0xFF6E746F),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemePresetsSelector() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: _themePresets.map((preset) {
+          final theme = preset['theme'] as QrCardTheme;
+          final isSelected = _selectedTheme == theme;
+          final colors = preset['colors'] as List<Color>;
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedTheme = theme;
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFF1B2820) : Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isSelected ? const Color(0xFF1B2820) : const Color(0xFFE5E2D9),
+                    width: 1.2,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.12),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: colors,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        border: Border.all(color: Colors.white, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colors.first.withValues(alpha: 0.4),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Text(
+                      preset['name'] as String,
+                      style: GoogleFonts.prompt(
+                        fontSize: 11.5,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        color: isSelected ? Colors.white : const Color(0xFF1B2820),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      preset['tag'] as String,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isSelected ? Colors.white.withValues(alpha: 0.7) : Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
 
   Widget _buildSectionTitle(String title, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: const Color(0xFF243129)),
+        Icon(icon, size: 16, color: const Color(0xFF1B2820)),
         const SizedBox(width: 6),
         Text(
           title,
@@ -875,16 +1561,16 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF243129) : Colors.white,
+          color: isSelected ? const Color(0xFF1B2820) : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? const Color(0xFF243129) : const Color(0xFFE5E2D9),
+            color: isSelected ? const Color(0xFF1B2820) : const Color(0xFFE5E2D9),
             width: 1.2,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFF243129).withValues(alpha: 0.15),
+                    color: const Color(0xFF1B2820).withValues(alpha: 0.15),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -897,7 +1583,7 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
             Icon(
               icon,
               size: 15,
-              color: isSelected ? const Color(0xFF10B981) : Colors.grey.shade700,
+              color: isSelected ? const Color(0xFF4EE29B) : Colors.grey.shade700,
             ),
             const SizedBox(width: 6),
             Text(
@@ -923,13 +1609,13 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.symmetric(vertical: 6.5),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF243129) : const Color(0xFFF4F3ED),
+            color: isSelected ? const Color(0xFF1B2820) : const Color(0xFFF4F3ED),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isSelected ? const Color(0xFF243129) : const Color(0xFFE2DFD5),
+              color: isSelected ? const Color(0xFF1B2820) : const Color(0xFFE2DFD5),
             ),
           ),
           child: Text(
@@ -981,13 +1667,13 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
                 child: DropdownButton<CatalogItem>(
                   value: _selectedCatalog,
                   isExpanded: true,
-                  icon: const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF243129)),
+                  icon: const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF1B2820)),
                   items: _catalogs.map((cat) {
                     return DropdownMenuItem<CatalogItem>(
                       value: cat,
                       child: Row(
                         children: [
-                          const Icon(Icons.book_rounded, size: 16, color: Color(0xFF243129)),
+                          const Icon(Icons.menu_book_rounded, size: 16, color: Color(0xFF1F7A54)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -1014,7 +1700,7 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
             const SizedBox(height: 8),
             Text(
               'ลิงก์: ${_selectedCatalog?.publicUrl ?? ""}',
-              style: GoogleFonts.prompt(fontSize: 10, color: const Color(0xFF10B981), fontWeight: FontWeight.w500),
+              style: GoogleFonts.prompt(fontSize: 10, color: const Color(0xFF1F7A54), fontWeight: FontWeight.w600),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -1036,7 +1722,7 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 hintText: 'https://www.example.com',
-                prefixIcon: const Icon(Icons.link_rounded, size: 18, color: Color(0xFF243129)),
+                prefixIcon: const Icon(Icons.link_rounded, size: 18, color: Color(0xFF1B2820)),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.paste_rounded, size: 18),
                   tooltip: 'วางข้อความ',
@@ -1169,7 +1855,7 @@ class _QrStudioScreenState extends State<QrStudioScreen> {
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 hintText: 'เช่น 0812345678',
-                prefixIcon: const Icon(Icons.phone_rounded, size: 18, color: Color(0xFF243129)),
+                prefixIcon: const Icon(Icons.phone_rounded, size: 18, color: Color(0xFF1B2820)),
                 filled: true,
                 fillColor: const Color(0xFFFAF9F5),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

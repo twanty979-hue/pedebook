@@ -12,6 +12,10 @@ class CatalogItem {
   final int returnRate;
   final int pageCount;
   final DateTime? createdAt;
+  final bool isPublic;
+  final String bgType;
+  final String bgValue;
+  final bool isFloating;
 
   CatalogItem({
     required this.id,
@@ -27,6 +31,10 @@ class CatalogItem {
     this.returnRate = 0,
     this.pageCount = 0,
     this.createdAt,
+    this.isPublic = true,
+    this.bgType = 'gradient',
+    this.bgValue = 'auto',
+    this.isFloating = false,
   });
 
   String get publicUrl => 'https://www.pedebook.com/catalog/$slug';
@@ -37,6 +45,46 @@ class CatalogItem {
       return '${(fileSizeBytes / 1024).toStringAsFixed(0)} KB';
     }
     return '${(fileSizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  CatalogItem copyWith({
+    String? id,
+    String? slug,
+    String? title,
+    String? fileName,
+    String? coverImage,
+    int? fileSizeBytes,
+    int? totalViews,
+    int? uniqueReaders,
+    int? returningCount,
+    int? newCount,
+    int? returnRate,
+    int? pageCount,
+    DateTime? createdAt,
+    bool? isPublic,
+    String? bgType,
+    String? bgValue,
+    bool? isFloating,
+  }) {
+    return CatalogItem(
+      id: id ?? this.id,
+      slug: slug ?? this.slug,
+      title: title ?? this.title,
+      fileName: fileName ?? this.fileName,
+      coverImage: coverImage ?? this.coverImage,
+      fileSizeBytes: fileSizeBytes ?? this.fileSizeBytes,
+      totalViews: totalViews ?? this.totalViews,
+      uniqueReaders: uniqueReaders ?? this.uniqueReaders,
+      returningCount: returningCount ?? this.returningCount,
+      newCount: newCount ?? this.newCount,
+      returnRate: returnRate ?? this.returnRate,
+      pageCount: pageCount ?? this.pageCount,
+      createdAt: createdAt ?? this.createdAt,
+      isPublic: isPublic ?? this.isPublic,
+      bgType: bgType ?? this.bgType,
+      bgValue: bgValue ?? this.bgValue,
+      isFloating: isFloating ?? this.isFloating,
+    );
   }
 
   factory CatalogItem.fromJson(Map<String, dynamic> json) {
@@ -80,6 +128,18 @@ class CatalogItem {
           : (json['created_at'] != null
               ? DateTime.tryParse(json['created_at'].toString())
               : null),
+      isPublic: json['is_public'] == null
+          ? (json['isPublic'] as bool? ?? true)
+          : (json['is_public'] as bool? ?? true),
+      bgType: json['bg_type']?.toString() ??
+          json['bgType']?.toString() ??
+          'gradient',
+      bgValue: json['bg_value']?.toString() ??
+          json['bgValue']?.toString() ??
+          'auto',
+      isFloating: json['is_floating'] == null
+          ? (json['isFloating'] as bool? ?? false)
+          : (json['is_floating'] as bool? ?? false),
     );
   }
 }

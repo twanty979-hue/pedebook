@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
           file_size_bytes: Number(fileSizeBytes) || 0,
           page_count: Number(pageCount) || 0,
           bg_type: bgType || 'gradient',
-          bgValue: bgValue || 'auto',
+          bg_value: bgValue || 'auto',
           is_floating: isFloating ?? false,
           is_public: isPublic !== false,
           allow_indexing: allowIndexing === true,

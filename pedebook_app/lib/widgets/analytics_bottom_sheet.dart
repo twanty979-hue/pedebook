@@ -128,20 +128,11 @@ class _AnalyticsBottomSheetState extends State<AnalyticsBottomSheet> {
             ),
           ),
 
-          // Header Bar with Back button and Close button
+          // Header Bar with Close button (ตัดปุ่มย้อนกลับที่ซ้ำซ้อนออก)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+            padding: const EdgeInsets.fromLTRB(18, 6, 16, 12),
             child: Row(
               children: [
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                  color: const Color(0xFF1B2820),
-                  tooltip: 'ย้อนกลับ',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(

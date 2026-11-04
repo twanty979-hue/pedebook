@@ -1,11 +1,10 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/catalog_model.dart';
-import '../screens/qr_studio_screen.dart';
 
 class ShareBottomSheet extends StatelessWidget {
   final CatalogItem catalog;
@@ -59,20 +58,11 @@ class ShareBottomSheet extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Header with Back button and Close button
+          // Header (Clean title and icon without close/back buttons)
           Row(
             children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                color: const Color(0xFF17221C),
-                tooltip: 'ย้อนกลับ',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.all(7),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1F7A54).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
@@ -83,17 +73,17 @@ class ShareBottomSheet extends StatelessWidget {
                   size: 20,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       catalog.title,
-                      style: const TextStyle(
+                      style: GoogleFonts.prompt(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF17221C),
+                        color: const Color(0xFF17221C),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -101,21 +91,13 @@ class ShareBottomSheet extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       'แชร์หรือสแกนเปิดอ่านสมุด 3D Flipbook',
-                      style: TextStyle(
+                      style: GoogleFonts.prompt(
                         fontSize: 11.5,
                         color: Colors.grey.shade600,
                       ),
                     ),
                   ],
                 ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded, size: 22),
-                color: Colors.grey.shade600,
-                tooltip: 'ปิด',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
               ),
             ],
           ),
@@ -171,7 +153,7 @@ class ShareBottomSheet extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       'ยื่นมือถือให้ลูกค้าสแกนเปิดอ่านได้เลย',
-                      style: TextStyle(
+                      style: GoogleFonts.prompt(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: Colors.grey.shade700,
@@ -218,10 +200,10 @@ class ShareBottomSheet extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Row(
-                          children: const [
-                            Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-                            SizedBox(width: 8),
-                            Text('คัดลอกลิงก์เรียบร้อยแล้วครับ'),
+                          children: [
+                            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                            const SizedBox(width: 8),
+                            Text('คัดลอกลิงก์เรียบร้อยแล้วครับ', style: GoogleFonts.prompt(fontSize: 12)),
                           ],
                         ),
                         backgroundColor: const Color(0xFF1B2820),
@@ -235,7 +217,7 @@ class ShareBottomSheet extends StatelessWidget {
                   },
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFF1F7A54),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                    textStyle: GoogleFonts.prompt(fontWeight: FontWeight.bold, fontSize: 12),
                   ),
                   child: const Text('คัดลอก'),
                 ),
@@ -267,7 +249,7 @@ class ShareBottomSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     elevation: 0,
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    textStyle: GoogleFonts.prompt(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                 ),
               ),
@@ -286,31 +268,11 @@ class ShareBottomSheet extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    textStyle: GoogleFonts.prompt(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 10),
-
-          // Shortcut to full QR Studio
-          TextButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => QrStudioScreen(initialCatalog: catalog),
-                ),
-              );
-            },
-            icon: const Icon(CupertinoIcons.slider_horizontal_3, size: 15, color: Color(0xFF1F7A54)),
-            label: const Text('ตกแต่งสีสันและบันทึกภาพใน สตูดิโอ QR →'),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF1B2820),
-              textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
           ),
         ],
       ),

@@ -8,8 +8,10 @@ import '../models/catalog_model.dart';
 import '../screens/book_detail_screen.dart';
 import '../screens/qr_studio_screen.dart';
 import '../services/supabase_service.dart';
+import '../services/api_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'analytics_bottom_sheet.dart';
+import 'share_bottom_sheet.dart';
 
 class CatalogCard extends StatefulWidget {
   final CatalogItem catalog;
@@ -291,13 +293,31 @@ class _CatalogCardState extends State<CatalogCard> {
   ];
 
   Future<void> _saveDecorationPreferences(String theme, bool isFloating) async {
+    final bgType = theme == 'auto' ? 'gradient' : 'default';
+    final bgValue = theme;
     try {
+      // 1. Sync directly to Supabase
       await SupabaseService.client.from('catalogs').update({
-        'background_type': theme == 'auto' ? 'gradient' : 'default',
-        'background_value': theme,
+        'bg_type': bgType,
+        'bg_value': bgValue,
         'is_floating': isFloating,
+        'updated_at': DateTime.now().toIso8601String(),
       }).eq('id', widget.catalog.id);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Save decoration via Supabase error: $e');
+    }
+
+    try {
+      // 2. Also sync to Web API (triggers cache clear and supabaseAdmin sync)
+      await PedebookApiService.updateCatalogDecoration(
+        catalogId: widget.catalog.id,
+        bgType: bgType,
+        bgValue: bgValue,
+        isFloating: isFloating,
+      );
+    } catch (e) {
+      debugPrint('Save decoration via Web API error: $e');
+    }
   }
 
   Widget _buildCompactBottomButton({
@@ -432,8 +452,8 @@ class _CatalogCardState extends State<CatalogCard> {
   /// ── โมดอลกลางจอพร้อม Live Preview สมุด 3D และตัวตกแต่งทันที (สไตล์สตูดิโอระดับ Executive) ──
   void _showCenterActionsModal(BuildContext context) {
     HapticFeedback.mediumImpact();
-    String selectedTheme = 'auto';
-    bool isFloating = true;
+    String selectedTheme = widget.catalog.bgValue.isNotEmpty ? widget.catalog.bgValue : 'auto';
+    bool isFloating = widget.catalog.isFloating;
     bool modalCopied = false;
     String modalView = 'main'; // 'main', 'qr', 'analytics', 'delete'
 
@@ -1730,22 +1750,25 @@ class _CatalogCardState extends State<CatalogCard> {
                 ),
                 const SizedBox(height: 9),
 
-                // ── 3. High-End Balanced Actions: [📖 เปิดอ่าน] + [⋯ จัดการ] ──
+                // ── 3. High-End Balanced Actions: [📤 แชร์] + [⋯ จัดการ] ──
                 Row(
                   children: [
-                    // Primary CTA: [📖 เปิดอ่าน]
+                    // Primary CTA: [📤 แชร์]
                     Expanded(
                       child: SizedBox(
                         height: 33,
                         child: ElevatedButton.icon(
-                          onPressed: _openReader,
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            ShareBottomSheet.show(context, widget.catalog);
+                          },
                           icon: const Icon(
-                            CupertinoIcons.book_fill,
+                            CupertinoIcons.share,
                             size: 13,
                             color: Color(0xFFE8DCC7),
                           ),
                           label: Text(
-                            'เปิดอ่าน',
+                            'แชร์',
                             style: GoogleFonts.prompt(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w700,

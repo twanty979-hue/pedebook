@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'services/supabase_service.dart';
+import 'services/revenuecat_service.dart';
 import 'screens/splash_screen.dart';
 
 void main() async {
@@ -9,6 +10,11 @@ void main() async {
     await SupabaseService.initialize();
   } catch (e) {
     debugPrint('Supabase init warning: $e');
+  }
+  try {
+    await RevenueCatService.instance.initialize();
+  } catch (e) {
+    debugPrint('RevenueCat init warning: $e');
   }
   runApp(const PedebookApp());
 }
